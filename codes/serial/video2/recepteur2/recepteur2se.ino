@@ -88,21 +88,24 @@ void loop(){
          if (RxSeq != rxbuf[1])// Si le num de séquence de la trame reçue est différent du numéro de séquence de la dernière trame reçue => c'est la 1er fois qu'on reçoit cette trame
          { 
              RxSeq = rxbuf[1]; // On entre le numéro de séquence dans le buffer de réception
-             Serial.print("numero de sequence : \n");
+             Serial.print("numero de sequence :  ");
              Serial.print("[");
              Serial.print(RxSeq); // Affichage du numéro de séquence de la trame
              Serial.print("]\n");
-             Serial.print("DATA de :  ");
+             Serial.print("Nombre d'octets :  ");
              Serial.print(rxlen); // Taille de la trame
-             Serial.print("octets :\n");
              Serial.println();
              
              for (j = 0; j < rxlen; j++)// Boucle qui permet d'efficher tous les octets
              {
-                 Serial.printf("\n");
-                 //Serial.printf(rxbuf[j]); // affichage de chaques octets de le trame
+                Serial.print("Octet ");
+                Serial.print(j+1);
+                Serial.print(" : ");
+                Serial.print(rxbuf[j]); // Affichage du contenu de la trame
+                Serial.print("\n");
              }
-             
+             Serial.print("\n");
+                 
          } 
          else // si on a déjà reçue cette trame
          // On estime que l'émetteur n'a pas reçu l'aqcuittement
