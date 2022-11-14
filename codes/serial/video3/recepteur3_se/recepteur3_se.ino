@@ -8,7 +8,7 @@
 #define RFM95_DIO0 36
 RH_RF95 rf95(RFM95_CS, RFM95_DIO0);
 
-uint8_t state, i;
+uint8_t state;
 uint8_t rxbuf[RH_RF95_MAX_MESSAGE_LEN];
 uint8_t rxbuflen = RH_RF95_MAX_MESSAGE_LEN;
 uint8_t txbuf[RH_RF95_MAX_MESSAGE_LEN];
@@ -17,7 +17,8 @@ uint8_t rxlen = RH_RF95_MAX_MESSAGE_LEN;
 uint8_t RxSeq;
 uint32_t attente; 
 uint8_t FCSc, FCSr;		// champ de contrôle d'un octet calculé et reçu
-int i,j;
+int i;
+int j;
 
 #define E0 0 // Ecoute
 #define E1 1 // Attente de reception de la trame
@@ -57,7 +58,6 @@ void setup()
 
 	state = E0; // Etat ecoute
 	delay(1000);
-	TxSeq = 0; credit = 5;
 	Serial.println("Boucle principale");
   Serial.println();
 	RxSeq = 255;		// pas encore reçu 1ere trame n°0. 0-1 = 255 sur 8 bits non signés
@@ -84,7 +84,7 @@ void loop()
  				FCSr = rxbuf[20];	// champ de contrôle reçu
  				FCSc = 0;	// calcul du FCS de la part du recepteur, que l'on comparera avec celui reçu dans un champs de la trame FCSr
 
- 				for (i =0<i<20;i++){ 
+ 				for (i=0;i<20;i++){ 
           FCSc ^ rxbuf[i];	// code = XOR des 20 octets de payload
          }
           if (FCSc == FCSr){	// même FCS calculé et reçu : trame juste
@@ -128,7 +128,7 @@ void loop()
  			rf95.send(txbuf, 3);
  			rf95.waitPacketSent();
 
- 			state = E0 // Retour à l'état d'écoute (de reception de trame) 
+ 			state = E0; // Retour à l'état d'écoute (de reception de trame) 
  		break;
 
  	default:
