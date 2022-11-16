@@ -6,122 +6,144 @@
 #define RFM95_DIO0 36
 RH_RF95 rf95(RFM95_CS, RFM95_DIO0);
 
-uint8_t state, i;
 uint8_t rxbuf[RH_RF95_MAX_MESSAGE_LEN], rxbuflen = RH_RF95_MAX_MESSAGE_LEN;
 uint8_t txbuf[RH_RF95_MAX_MESSAGE_LEN], txbuflen = RH_RF95_MAX_MESSAGE_LEN;
 uint8_t rxlen = RH_RF95_MAX_MESSAGE_LEN;
-uint8_t RxSeq;
-uint32_t attente; // pour plus tard si full duplex
+uint8_t state, RxSeq, TxSeq, credit, backoff, NewFrame, EIT;
+uint32_t attente;
 
 #define E0 0
 #define E1 1
 #define E2 2
 #define E3 3
-
+#define E4 4
+#define E5 5
 #define canal 1
-
 #define TYPE_DATA 1
 #define TYPE_ACK 2
-
-#define MyAdr 0 //adresse locale du noeud Rx0
+#define TIMEOUT_ACK 40
+#define MyAdr 1 //adresse locale du noeud Tx1 ou Tx2 ou... Tx9
 
 void setup (){
 
-// Initialize console port 
-	M5.Power.begin();
-  M5.begin(9600); //règle le débit du M5 à 9600 bauds ( = 9600 b/s)
+	// Initialisation console port
+	M5.Power.begin(); //initialisation de la puissance
+  M5.begin(9600); //règle le débit du M5 à 9600 bauds : Le même que celui de l'emetteur (Sinon, l'échange ne fonctionnerait pas)
   Serial.begin(115200);
-
+  M5.Lcd.setTextColor(RED, TFT_BLACK);
   Serial.print("Video 4\n");
   Serial.print("\n");
   Serial.print("On commence\n");
   Serial.print("\n");
-
-	if (!rf95.init()){
-		Serial.println("Erreur initialisation RF95");
-  }
+  
+  if(!rf95.init()) //init règle la puissance à 13dBm
+      Serial.print("Erreur initialisation RF95\n"); // on vérifie si il y a une erreur avec le transceiver
   else
-  {
-		Serial.println("RF95 initialisation OK");
-    Serial.printf("\n");
-  }
+      Serial.print("Initialisation OK\n"); // On indique que l'initialisation s'est bien passée
+      Serial.print("\n");
 
-	rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128);
-	rf95.setFrequency(867.7);
+  rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128);
+  rf95.setFrequency(867.7); // On défini la fréquence à laquelle on emet
 
 	state = E0;
 	delay(3000);
+	TxSeq = 0;
+	credit = 5;
 	Serial.println("Boucle principale");
-	RxSeq = 255; // pas encore reçu 1ere trame n°0. 0-1 = 255 sur 8 bits non signés
+
+	NewFrame = 1;
 
 }
 
 
 void loop(){
 	
-	int j; // index pour parcourir les octets de la trame reçue à afficher
-
 	switch(state){
 
-		case E0: // se mettre en réception des données
-			Serial.println("Etat 0 : reception de donnees");
-			rf95.setModeRx();
+		case E0:
+			if (NewFrame == 1){ // loi d'arrivée aléatoire du flux de trames à envoyer
+				EIT = random(5,100);
+				delay(EIT); //la nouvelle trame à envoyer arrive entre 5 et 99 ms plus tard
+				Serial.printf(" EIT : %d ", EIT);
+				Serial.println();
+			}
+
+			Serial.printf("EMISSION %d : ", TxSeq);
+			txbuf[0] = MyAdr; // @S : Moi
+			txbuf[1] = 0; // @D : le puits
+			txbuf[2] = TYPE_DATA; //le type de message
+			txbuf[3] = TxSeq;
+			txbuf[4] = 'Ox0AA';
+			txbuf[5] = 'Ox55';
+			rf95.send(txbuf, 6); //envoie de données (une trame de 6 octets)
+			rf95.waitPacketSent();
+			credit--; // On vient d'émettre une fois de + la trame
 			state = E1;
 			break;
 
-		case E1: //vérifier si un message reçu est disponible
-			rxlen = RH_RF95_MAX_MESSAGE_LEN; //taille max en réception
-			if (rf95.recv(rxbuf, &rxlen)){ // Si il y a quelque chose dans le buffer, alors :
-				if ((rxbuf[2] == TYPE_DATA) && (rxbuf[1] == MyAdr)){
-					//si message est de type DATA et moi moi
-					state = E2;
-				}
-				else
-				{
-					state = E0;
-				}
-			}
+		case E1:
+			attente = millis() + TIMEOUT_ACK; //armement watchdog
+			state = E2;
 			break;
 
-		case E2: // afficher la trame
-			if (RxSeq != rxbuf[3]) // si 1ere fois que l'on reçoit cette trame
-      {
-				
-				RxSeq = rxbuf[3];
-				Serial.printf("Numero de sequence : %d ", RxSeq);
-        Serial.printf("\n");
-				Serial.printf("Nombre d'octets : %d", rxlen);
-				Serial.println();
-
-				for (j=0; j<rxlen; j++) // Affichage de la trame
-        {
-					Serial.printf("%02x|", rxbuf[j]);
-				}
-				Serial.println();
-			}
-			else // si on a déjà reçu cette même trame
-			{
-				Serial.printf("Duplication");
-			}
+		case E2:
+			rf95.setModeRx(); // Mettre la radio en mode réception pour l'ACK
 			state = E3;
 			break;
 
-		case E3: // envoyer ACK
-
-			Serial.println("E3");
-			txbuf[0] = MyAdr; // je suis la source de l'ACK
-			txbuf[1] = rxbuf[0]; //j'émets l'ACK vers la source de la DATA
-			txbuf[2] = TYPE_ACK; // octet indiquant le type_message (ACK)
-			txbuf[3] = rxbuf[3]; // ACK de même numéro de sequence que la trame DATA reçue
-			
-      rf95.send(txbuf, 4);
-			rf95.waitPacketSent();
-
-			state = E0;
+		case E3: //attente d'ACK non bloquante ( car test trame reçue durant le watchdog )
+			if(millis() > attente){ // vérification si le watchdog est expiré
+				state = E5; // si attente expirée : problème !
+			}
+			else // si attente en cours (watchdog non expiré)
+			{
+				if(rf95.recv(rxbuf, &rxlen)){
+					//vérifier si une trame est disponible
+					if((rxbuf[2] == TYPE_ACK) && (rxbuf[3] == TxSeq) && (rxbuf[1] == MyAdr)){ 
+						//si la trame reçue est de type ACK, et même numero, et pour moi
+						state = E4;
+					}
+					else
+					{
+						state = E2;
+					}
+				}
+			}
 			break;
+
+		case E4:
+			Serial.println("ACK_RECU");
+			state = E0;
+			TxSeq++;
+			credit = 5; // trame suivante
+			break;
+
+		case E5: //si le watchdog expire sans réception d'ACK, ECHEC si crédit épuisé
+			Serial.println("E5");
+			if (credit == 0){
+
+				Serial.println("ECHEC");
+				state = E0;
+				NewFrame = 1; // nouvelle trame ( prévoir EIT : flux d'arrivée)
+				credit = 5;
+				TxSeq++;
+				break;
+			}
+			else
+			{
+				Serial.printf("Collision ? Nouvelle tentative n° %d", 5-credit);
+				state = E0;
+				NewFrame = 0; // toujours même trame : pas de EIT de flux
+				backoff = random(0,100);
+				delay(backoff); //attente aléatoire ALOHA
+				Serial.printf(" Backoff : %d", backoff);
+				Serial.println();
+				break;
+			}
 
 		default:
+			state = E0;
 			break;
-
 	}
+
 }
