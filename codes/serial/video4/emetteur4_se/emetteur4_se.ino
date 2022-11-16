@@ -67,7 +67,6 @@ void loop(){
 				Serial.printf(" EIT : %d ", EIT);
 				Serial.println();
 			}
-
 			Serial.printf("EMISSION %d : ", TxSeq);
 			txbuf[0] = MyAdr; // @S : Moi
 			txbuf[1] = 0; // @D : le puits
@@ -119,10 +118,10 @@ void loop(){
 			break;
 
 		case E5: //si le watchdog expire sans réception d'ACK, ECHEC si crédit épuisé
-			Serial.println("E5");
+			Serial.println("Etat 5");
 			if (credit == 0){
 
-				Serial.println("ECHEC");
+				Serial.println("ECHEC, credit epuise");
 				state = E0;
 				NewFrame = 1; // nouvelle trame ( prévoir EIT : flux d'arrivée)
 				credit = 5;
@@ -131,12 +130,15 @@ void loop(){
 			}
 			else
 			{
-				Serial.printf("Collision ? Nouvelle tentative n° %d", 5-credit);
+				Serial.printf("Collision Nouvelle tentative n° %d\n", 5-credit);
+        Serial.printf("Nombre de credit restant %d", 5-credit);
+        Serial.printf("\n");
 				state = E0;
 				NewFrame = 0; // toujours même trame : pas de EIT de flux
 				backoff = random(0,100);
 				delay(backoff); //attente aléatoire ALOHA
 				Serial.printf(" Backoff : %d", backoff);
+        Serial.printf("\n");
 				Serial.println();
 				break;
 			}
