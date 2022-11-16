@@ -12,16 +12,18 @@ uint8_t rxlen = RH_RF95_MAX_MESSAGE_LEN;
 uint8_t state, RxSeq, TxSeq, credit, backoff, NewFrame, EIT;
 uint32_t attente;
 
-#define E0 0
+#define E0 0 
 #define E1 1
 #define E2 2
 #define E3 3
 #define E4 4
 #define E5 5
+
 #define canal 1
 #define TYPE_DATA 1
 #define TYPE_ACK 2
 #define TIMEOUT_ACK 40
+
 #define MyAdr 1 //adresse locale du noeud Tx1 ou Tx2 ou... Tx9
 
 void setup (){
@@ -67,6 +69,7 @@ void loop(){
 				Serial.printf(" EIT : %d ", EIT);
 				Serial.println();
 			}
+      delay(3000);
 			Serial.printf("EMISSION %d : ", TxSeq);
 			txbuf[0] = MyAdr; // @S : Moi
 			txbuf[1] = 0; // @D : le puits
