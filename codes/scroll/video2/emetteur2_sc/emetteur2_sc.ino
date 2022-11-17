@@ -1,5 +1,3 @@
-#include <M5Stack.h>
-
 #include <SPI.h> //Nativement dans arduino donc pas besoin de l'installer en +
 #include <RH_RF95.h> //gestion des transmissions radio en Lora
 #include <M5Stack.h>

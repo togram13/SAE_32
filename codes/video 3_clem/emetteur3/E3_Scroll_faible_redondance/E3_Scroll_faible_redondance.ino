@@ -1,4 +1,4 @@
-// Code de l'émetteur (émission simple de data) video 3 Serial
+// Code de l'émetteur (émission simple de data) video 3 Scroll
 
 #include <SPI.h>
 #include <RH_RF95.h>
@@ -12,8 +12,10 @@ uint8_t rxbuf[RH_RF95_MAX_MESSAGE_LEN], rxbuflen = RH_RF95_MAX_MESSAGE_LEN;
 uint8_t txbuf[RH_RF95_MAX_MESSAGE_LEN], txbuflen = RH_RF95_MAX_MESSAGE_LEN;
 uint8_t rxlen = RH_RF95_MAX_MESSAGE_LEN, state, RxSeq, TxSeq, credit;
 uint32_t attente;
+uint32_t enBuf; //Utile pour savoir si 'buffer vide' a déjà été écrit
 uint8_t FCS; // champ de contrôle d'un octet (entier non signé sur 8 bits)
 int i; // index qui parcours la trame
+char temp[255];
 
 #define E0 0 // Emission de DATA (Données + XOR)
 #define E1 1 // Armement du CDG
@@ -25,7 +27,7 @@ int i; // index qui parcours la trame
 #define canal 1
 #define TYPE_DATA 1 
 #define TYPE_ACK 2
-#define TIMEOUT_ACK 40
+#define TIMEOUT_ACK 100
 
 // Initialisations
 
@@ -35,30 +37,25 @@ void setup()
   M5.begin(9600); //règle le débit du M5 à 9600 bauds ( = 9600 b/s)
   Serial.begin(115200);
 
-  Serial.print("Video DATA ACK Point a point\n");
-  Serial.print("\n");
-  Serial.print("On commence\n");
-  Serial.print("\n");
+  printString("Video DATA ACK Point a point\r\r");
+  printString("On commence\r\r");
 
 	if (!rf95.init()) 
 	{
-  	Serial.println("Erreur initialisation RF95");
+  	printString("\rErreur initialisation RF95\r\r");
   }
   else{ 
-		Serial.println("RF95 initialisation OK");
+		printString("\rRF95 initialisation OK\r\r");
   }
 	rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128);
 	rf95.setFrequency(867.7);
 
 	state = E0;
-
-	delay(1000);
+  enBuf = 0;
 
 	TxSeq = 0; credit = 5;
 
-	Serial.println("Boucle principale");	
 }
-
 
 // Boucle sans fin : corps du programme
 
@@ -67,10 +64,12 @@ void loop()
 	switch (state)
 		{
       case E0: // Emission de DATA + XOR
-
-			Serial.printf("EMISSION de Trame: \n");
-      Serial.printf("Numero de sequence %d : ",TxSeq);
-      Serial.printf("\n");
+      delay(3000); //delai d'émission
+			printString("Emission de la trame ---------------------------\r");
+			printString("Numero de sequence : ");
+      sprintf(temp, "%d", TxSeq);
+      printString(temp);
+      termPutchar('\r');
       
       //Remplissage des octets de la trame :
 			txbuf[0] = TYPE_DATA; // Premier octet reservé au type de trame (DATA ou ACK)
@@ -91,12 +90,13 @@ void loop()
       }		
 			txbuf[20] = FCS;
 
-			// affichage pour debug 
 			for (i =0;i<21;i++) {
         // Affichage de la trame envoyée (De tous les octets) :
-        Serial.printf("|%02X",txbuf[i]);
-			  Serial.println("|");
+        printString("|");
+        sprintf(temp, "%02x", txbuf[i]);
+        printString(temp);
       }
+      printString("|\r");
 
 			rf95.send(txbuf, 21);		// emission
 			rf95.waitPacketSent();
@@ -140,36 +140,43 @@ void loop()
 
 		 		}
         else{
-          printf("buffeur Vide\n");
-          printf("\n");
+          if(enBuf == 0){
+            printString("Buffer vide... (Attente ACK)"); //On affiche une seule fois si le buffer est vide pour ne pas charger le terminal
+            enBuf = 1;
+          }
+          
         }
 		 	}
 			break;
 
 		 case E4:
-				Serial.println("ACK_RECU"); // Affichage de la bonne reception du Ack
-        Serial.printf("\n");
+				printString("\rACK recu ! Trame suivante\r\r"); // Affichage de la bonne reception du Ack
+        enBuf = 0;
 				state = E0;  // Emission de la trame suivante 
         TxSeq++; // Incrémentation du numéro de séquence de la trame
         credit = 5;	
 				break;
 
 		 case E5: 		// si le watchdog expire sans réception d'ACK, ECHEC si crédit épuisé 
-		  Serial.println("Etat 5 : Gestion des credits de repetitions");
+		  printString("\r\rGestion des credits de repetitions (E5)");
 		  if (credit ==0) // Si credit de repetitions epuisé, alors : 
 		 	{
-		 		Serial.println("ECHEC"); // Affichage de echec
+		 		printString("\rEchec, trame suivante\r\r"); // Affichage de echec
 		 		state = E0; // Retour à l'etat d'emission
 		 		credit = 5; TxSeq++;		// trame suivante
 		 		break;
 		 	}
 		  else
 		  	{
-		  		Serial.printf("Nouvelle tentative n° %d",5-credit); // Affichage du nombre de tentatives restantes
+		  		printString("\rNouvelle tentative n° "); // Affichage du nombre de tentatives restantes
+          sprintf(temp, "%d", 5 - credit);
+          printString(temp);
 		  		state = E0; // Retour à l'etat d'emission
-		  		Serial.println();
+          enBuf = 0;
+		  		termPutchar('\r\r');
 		  		break;
 		  	}
+
 		 default:
 		 	state = E0;
 		 	break; 

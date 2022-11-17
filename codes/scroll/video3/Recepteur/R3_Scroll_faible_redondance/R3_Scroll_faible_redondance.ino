@@ -1,4 +1,4 @@
-// Code du récepteur serial Video 3
+// Code du récepteur Scroll Video 3
 
 #include <SPI.h>
 #include <RH_RF95.h>
@@ -19,6 +19,7 @@ uint32_t attente;
 uint8_t FCSc, FCSr;		// champ de contrôle d'un octet calculé et reçu
 int i;
 int j;
+char temp[255];
 
 #define E0 0 // Ecoute
 #define E1 1 // Attente de reception de la trame
@@ -35,21 +36,23 @@ void setup()
 {
 	// Initialize console port 
 	M5.Power.begin();
+  termInit();
   M5.begin(9600); //règle le débit du M5 à 9600 bauds ( = 9600 b/s)
   Serial.begin(115200);
 
-  Serial.print("Video DATA ACK Point a point\n");
-  Serial.print("\n");
-  Serial.print("On commence\n");
-  Serial.print("\n");
+  printString("Video DATA ACK Point a point\r");
+  termPutchar('\r');
+  printString("On commence\r");
+  termPutchar('\r');
 
 	if (!rf95.init()){
-		Serial.println("Erreur initialisation RF95");
+    printString("Erreur initialisation RF95");
+    termPutchar('\r');
   }
   else
   {
-		Serial.println("RF95 initialisation OK");
-    Serial.printf("\n");
+    printString("RF95 initialisation OK");
+    termPutchar('\r');
   }
 
 	rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128);
@@ -57,9 +60,7 @@ void setup()
 
 
 	state = E0; // Etat ecoute
-	delay(1000);
-	Serial.println("Boucle principale");
-  Serial.println();
+  delay(1000);
 	RxSeq = 255;		// pas encore reçu 1ere trame n°0. 0-1 = 255 sur 8 bits non signés
 }
 
@@ -69,7 +70,7 @@ void loop()
  switch (state)
  {
  	case E0:	// Mode  réception des données
- 		Serial.println("Etat 0 : reception de data");
+ 		//Serial.println("Etat 0 : reception de data");
  		rf95.setModeRx();
  		state = E1;
  		break;
@@ -78,6 +79,9 @@ void loop()
  		rxlen = RH_RF95_MAX_MESSAGE_LEN;	// taille max en réception
  		if (rf95.recv(rxbuf, &rxlen)) // Si il y a quelque chose dans le buffer, alors :
  		{
+      termPutchar('\r');
+      printString("Paquet recu ---------------------------");
+      termPutchar('\r');
  			if (rxbuf[0]==TYPE_DATA)	// si le premier octet du message est de type DATA
  			{
  				//test si FCS est juste 
@@ -85,12 +89,14 @@ void loop()
  				FCSc = 0;	// calcul du FCS de la part du recepteur, que l'on comparera avec celui reçu dans un champs de la trame FCSr
 
  				for (i=0;i<20;i++){ 
-          FCSc ^ rxbuf[i];	// code = XOR des 20 octets de payload
+          FCSc = FCSc ^ rxbuf[i];	// code = XOR des 20 octets de payload
          }
           if (FCSc == FCSr){	// même FCS calculé et reçu : trame juste
- 					  state = E2; // etat d'affichage de la trame
+            state = E2; // etat d'affichage de la trame
           }
  					else {
+            printString("FCS erroné");
+            termPutchar('\r');
  						state = E0;		// trame fausse => FCS calculé et reçu différents => etat de reception de données
           }
        }
@@ -101,25 +107,33 @@ void loop()
  		if (RxSeq != rxbuf[1])	// si 1ere fois que l'on reçoit cette trame
  		{
  			RxSeq = rxbuf[1];
- 			Serial.printf("Numero de sequence : %d ", RxSeq);
- 			Serial.printf("Nombre d'octets :", rxlen);
- 			Serial.println();
+      printString("Numero de sequence : ");
+      sprintf(temp, "%d", RxSeq);
+      printString(temp);
+
+      printString("\rNombre d'octets : ");
+      sprintf(temp, "%d", rxlen);
+      printString(temp);
+      termPutchar('\r');
+      printString("|");
 
  			for (j=0; j<rxlen; j++)
  			{
- 				Serial.printf("%02x|", rxbuf[j]);
+ 				sprintf(temp, "%02x|", rxbuf[j]);
+        printString(temp);
  			}
  		}
  		else	// si on a déjà reçu cette même trame
  		{
- 			Serial.printf("Duplication de la trame => absorption");
+      printString("Duplication de la trame => absorption");
  		}
  		state = E3; // Envois du ACK
  		break;
 
  	case E3:	// envoyer ACK
- 			Serial.println("Etat 3 : Emission de ACK");
-      Serial.printf("\n");
+      termPutchar('\r');
+      printString("Emission de ACK (E3)");      
+      termPutchar('\r');
 
  			txbuf[0] = TYPE_ACK;	// octet indiquant le type_message ACK
  			txbuf[1] = rxbuf[1];	// ACK de même numéro que le numero de sequence de la trame data reçue
@@ -135,5 +149,3 @@ void loop()
  		break;
  }
 }
-
-
