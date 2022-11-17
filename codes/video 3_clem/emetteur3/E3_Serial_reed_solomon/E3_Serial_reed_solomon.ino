@@ -47,7 +47,6 @@ void setup()
 	delay(1000);
 	//randomSeed(analogRead(A3));
 
-	Serial.println("Boucle principale");
 }
 
 
@@ -56,28 +55,40 @@ void loop()
 	switch (state)
 	{
 		case EMISSION:
-			Serial.println("EMISSION");	// trame de 20 octets utiles + 4 octets code RS
-			S = 0; SP=0;
-			for (i=0; i<20; i++)
+			Serial.println("Emission de la trame ---------------");	// trame de 20 octets utiles + 4 octets code RS
+			S = 0;
+      SP=0;
+      
+			for(i=0; i<20; i++)
 			{
-				txbuf[i] = 255; S = S + txbuf[i]; SP = SP + txbuf[i]*(i+1);
-				Serial.printf("|%02X",txbuf[i]);
+				txbuf[i] = 255;
+        S = S + txbuf[i];
+        SP = SP + txbuf[i]*(i+1);
+				Serial.printf("|%02x", txbuf[i]);
 			}
-			txbuf[20] = S & 0x00FF; txbuf[21] = (S & 0xFF00) >> 8;
-			Serial.printf("|%02X",txbuf[20]); Serial.printf("|%02X",txbuf[21]);
 
-			txbuf[22] = SP & 0x00FF; txbuf[23] = (SP & 0xFF00) >> 8;
-			Serial.printf("|%02X",txbuf[22]); Serial.printf("|%02X",txbuf[23]);
+      Serial.printf("|");
+			txbuf[20] = S & 0x00FF;
+      txbuf[21] = (S & 0xFF00) >> 8;
+
+			Serial.printf("%02x|", txbuf[20]);
+      Serial.printf("%02x|", txbuf[21]);
+
+			txbuf[22] = SP & 0x00FF;
+      txbuf[23] = (SP & 0xFF00) >> 8;
+			Serial.printf("%02x|", txbuf[22]); 
+      Serial.printf("%02x|", txbuf[23]);
 
 			Serial.println();
 			rf95.send(txbuf, 24);		// émission
+      rf95.waitPacketSent();
 			state = DELAI;
 			break;
 
 
 		case DELAI:				// code source de l'état DELAI
-		 	Serial.println("DELAI");
-		 	delay(1000);			// 1s avant d'émettre la trame suivante
+		 	Serial.println("Attente...\n");
+		 	delay(3000);			// 1s avant d'émettre la trame suivante
 		 	state = EMISSION;		// transition vers l'état suivant
 		 	break;
 
