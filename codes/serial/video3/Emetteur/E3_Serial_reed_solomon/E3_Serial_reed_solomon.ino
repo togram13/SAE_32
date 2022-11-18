@@ -86,7 +86,7 @@ void loop()
 
 
 		case DELAI:				// code source de l'état DELAI
-		 	Serial.println("Attente...\n");
+		 	Serial.println("\nAttente...\n");
 		 	delay(3000);			// 1s avant d'émettre la trame suivante
 		 	state = EMISSION;		// transition vers l'état suivant
 		 	break;
