@@ -53,7 +53,7 @@ void setup()
   }
 
 	rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128);
-	rf95.setFrequency(867.7);
+	rf95.setFrequency(900);
 
 
 	state = E0; // Etat ecoute

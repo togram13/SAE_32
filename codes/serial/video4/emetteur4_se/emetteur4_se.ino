@@ -45,7 +45,7 @@ void setup (){
       Serial.print("\n");
 
   rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128);
-  rf95.setFrequency(867.7); // On défini la fréquence à laquelle on emet
+  rf95.setFrequency(900); // On défini la fréquence à laquelle on emet
 
 	state = E0;
 	delay(3000);
@@ -64,12 +64,11 @@ void loop(){
 
 		case E0:
 			if (NewFrame == 1){ // loi d'arrivée aléatoire du flux de trames à envoyer
-				EIT = random(5,100);
+				EIT = random(5,50);
 				delay(EIT); //la nouvelle trame à envoyer arrive entre 5 et 99 ms plus tard
 				Serial.printf(" EIT : %d ", EIT);
 				Serial.println();
 			}
-      delay(3000);
 			Serial.printf("EMISSION %d : ", TxSeq);
 			txbuf[0] = MyAdr; // @S : Moi
 			txbuf[1] = 0; // @D : le puits
@@ -77,7 +76,22 @@ void loop(){
 			txbuf[3] = TxSeq;
 			txbuf[4] = 'Ox0AA';
 			txbuf[5] = 'Ox55';
-			rf95.send(txbuf, 6); //envoie de données (une trame de 6 octets)
+      txbuf[6] = 'Ox0AA';
+			txbuf[7] = 'Ox55';
+      txbuf[8] = 'Ox0AA';
+			txbuf[9] = 'Ox55';
+      txbuf[10] = 'Ox0AA';
+			txbuf[11] = 'Ox55';
+      txbuf[12] = 'Ox0AA';
+			txbuf[13] = 'Ox55';
+      txbuf[14] = 'Ox0AA';
+			txbuf[15] = 'Ox55';
+      txbuf[16] = 'Ox0AA';
+			txbuf[17] = 'Ox55';
+      txbuf[18] = 'Ox0AA';
+			txbuf[19] = 'Ox55';
+      txbuf[20] = 'Ox0AA';
+			rf95.send(txbuf, 21); //envoie de données (une trame de 6 octets)
 			rf95.waitPacketSent();
 			credit--; // On vient d'émettre une fois de + la trame
 			state = E1;

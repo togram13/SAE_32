@@ -66,8 +66,8 @@ void loop()
         SP = SP + txbuf[i]*(i+1);
 				Serial.printf("|%02x", txbuf[i]);
 			}
-
       Serial.printf("|");
+
 			txbuf[20] = S & 0x00FF;
       txbuf[21] = (S & 0xFF00) >> 8;
 
@@ -79,7 +79,6 @@ void loop()
 			Serial.printf("%02x|", txbuf[22]); 
       Serial.printf("%02x|", txbuf[23]);
 
-			Serial.println();
 			rf95.send(txbuf, 24);		// émission
       rf95.waitPacketSent();
 			state = DELAI;

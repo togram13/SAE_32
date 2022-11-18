@@ -29,17 +29,15 @@ void setup()
   M5.begin(9600); //règle le débit du M5 à 9600 bauds ( = 9600 b/s)
   Serial.begin(115200);
 
-  printString("Video DATA ACK Point a point\r");
-  printString("\r");
-  printString("On commence\r");
-  printString("\r");
+  printString("Video DATA ACK Point a point\r\r");
+  printString("On commence\r\r");
 
   if (!rf95.init()) 
   {
-    printString("Erreur initialisation RF95");
+    printString("Erreur initialisation RF95\r");
   }
   else{ 
-    printString("RF95 initialisation OK");
+    printString("RF95 initialisation OK\r");
   }
   rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128);
   rf95.setFrequency(867.7);
@@ -56,7 +54,7 @@ void loop()
   switch (state)
   {
     case EMISSION:
-      printString("Emission de la trame ---------------"); // trame de 20 octets utiles + 4 octets code RS
+      printString("Emission de la trame ---------------\r"); // trame de 20 octets utiles + 4 octets code RS
       S = 0;
       SP=0;
       
@@ -67,8 +65,8 @@ void loop()
         SP = SP + txbuf[i]*(i+1);
         sprintf(temp, "|%02x", txbuf[i]);
       }
+      printString("|");
 
-      sprintf("|");
       txbuf[20] = S & 0x00FF;
       txbuf[21] = (S & 0xFF00) >> 8;
 
@@ -84,7 +82,6 @@ void loop()
       sprintf(temp, "%02x|", txbuf[23]);
       printString(temp);
 
-      printString();
       rf95.send(txbuf, 24);   // émission
       rf95.waitPacketSent();
       state = DELAI;
@@ -92,12 +89,11 @@ void loop()
 
 
     case DELAI:       // code source de l'état DELAI
-      printString("Attente...\r");
+      printString("\rAttente...\r");
       delay(3000);      // 1s avant d'émettre la trame suivante
       state = EMISSION;   // transition vers l'état suivant
       termPutchar('\r\r');
       break;
-
      
     default:
       break;
