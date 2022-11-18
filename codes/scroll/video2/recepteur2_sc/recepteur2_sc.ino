@@ -1,134 +1,131 @@
-// Code de l'émetteur (émission simple de data)
-
-#include <SPI.h>
-#include <RH_RF95.h>
+#include <SPI.h> //Nativement dans arduino donc pas besoin de l'installer en +
+#include <RH_RF95.h> //gestion des transmissions radio en Lora
 #include <M5Stack.h>
+ 
+#define RFM95_CS 5 //M5Stack Lora
+#define RFM95_DIO0 36
+RH_RF95 rf95(RFM95_CS, RFM95_DIO0);
 
-uint8_t rxbuf[RH_RF95_MAX_MESSAGE_LEN], rxbuflen = RH_RF95_MAX_MESSAGE_LEN;
-uint8_t txbuf[RH_RF95_MAX_MESSAGE_LEN], txbuflen = RH_RF95_MAX_MESSAGE_LEN;
-uint8_t rxlen = RH_RF95_MAX_MESSAGE_LEN, state, RxSeq, TxSeq, credit;
-uint32_t attente;
-uint_t FCS;					// champ de contrôle d'un octet (entier non signé sur 8 bits)
-int i;						// index
+int  RF95_MAX_MESSAGE_LEN = 16;
+uint8_t rxbuf[16], rxbuflen = RF95_MAX_MESSAGE_LEN;
+uint8_t txbuf[16], txbuflen = RF95_MAX_MESSAGE_LEN;
+uint8_t rxlen = RF95_MAX_MESSAGE_LEN;
+uint8_t state,RxSeq,TxSeq, credit;
+uint32_t attente; // Si on veut faire du full duplex et que chaque noeud soit emetteur et récepteur à la fois, on prépare une variable d'attente pour un potentiel CDG 
+char temp[255];
+ 
+#define E0 0 // Activation de l'ecoute
+#define E1 1 // Attente de la trame de data
+#define E2 2 //Affichage de la trame reçue
+#define E3 3 //Emission du ACK
+// Pas d'attente d'ACK pour la trame ACK (Boucle infinie sinon) => C'est l'arrivée de la trame suivante qui correspond à la bonne récéption du ACK par l'emetteur
+ 
+#define canal 1 // canal similaire à celui de l'emetteur
+ 
+#define TYPE_DATA 1 // Définition du type de trame DATA à 1
+#define TYPE_ACK 2 //Définition du type de trame ACK à 2
+ 
+void setup(){
 
-#define E0 0
-#define E1 1
-#define E2 2
-#define E3 3
-#define E4 4
-#define E5 5
-
-#define canal 1
-#define TYPE_DATA 1 
-#define TYPE_ACK 2
-#define TIMEOUT_ACK 40
-
-// Initialisations
-
-void setup()
-{
-	M5.Power.begin(9600);
-
-	if (!rf95.init()) 
-		Serial.println("RF95 init failed");
-	else			  
-		Serial.println("RF95 init OK");
-
-	rf95.setTxPower(RH_RF95_TXPOW_8DBM);
-	rf95.setModemConfig(RH_RF95::GFSK_Rb125Fd125);
-	rf95.setFrequency(433.1+canal*0.1, 0.05);
-
-	state = E0;
-
-	delay(1000);
-
-	TxSeq = 0; credit = 5;
-
-	Serial.println("Boucle principale");	
+   M5.Power.begin(); //initialisation de la puissance
+   M5.begin(9600); //règle le débit du M5 à 9600 bauds : Le même que celui de l'emetteur (Sinon, l'échange ne fonctionnerait pas)
+   Serial.begin(115200);
+   
+   printString("Video DATA ACK Point a point\r\r");
+   printString("On commence\r\r");
+   
+   if(!rf95.init()) //init règle la puissance à 13dBm
+   {
+       printString("Erreur initialisation RF95\r\r"); // on vérifie si il y a une erreur avec le transceiver
+   }
+   else
+       printString("Initialisation OK\r\r"); // On indique que l'initialisation s'est bien passée
+  
+   rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128);
+   rf95.setFrequency(867.7); // On défini la fréquence à laquelle on emet
+ 
+   state = E0; // Activation de l'écoute
+ 
+   delay(1000);
+   
+   RxSeq = 255; // pas encore reçu la trame 0, donc 0-1 = 255 sur 8 bits non signés.
+ 
 }
+ 
+void loop(){
+   int i; // Variable locale qui parcoure les octets de la trame reçue à afficher
+   
+   switch (state){
+     case E0: // Se mettre en reception de donnée
+     
+         printString("\rEcoute en cours... ---------------------\r"); // Affichage de l'état en cours
+         
+         rf95.setModeRx(); // activation du récepteur Radio
+         state = E1; // Passage de la variable à l'état d'attente
+         break;
+     
+     case E1: // vérifier si un message reçu est diponible
+         rxlen = RF95_MAX_MESSAGE_LEN; // Taille max du buffer en reception à réinitialiser pour reçevoir une prochaine plus longue
+        
+         if(rf95.recv(rxbuf, &rxlen)) // Si la trame de DATA est présente dans le buffer
+         {
+            if (rxbuf[0]== TYPE_DATA)// Si le premier octet du message est le type DATA
+            { 
+              state = E2; // On passe à l'état d'affichage de la trame reçue
+            }    
+            else // Si le premier octet n'est pas de type DATA
+            {
+              printString("Rien dans le buffer...\r");
+              state = E0; // On repasse à l'état réception
+            }
+         }
+         
+         break;
+         
+     case E2: //etat d'affichage de la trame
+         
+         if (RxSeq != rxbuf[1])// Si le num de séquence de la trame reçue est différent du numéro de séquence de la dernière trame reçue => c'est la 1er fois qu'on reçoit cette trame
+         { 
+            RxSeq = rxbuf[1]; // On entre le numéro de séquence dans le buffer de réception
+            printString("Numero de sequence : ");
+            sprintf(temp, "%d", RxSeq);
+            printString(temp);
+            termPutchar('\r');
+            
+            printString("Nombre d'octets : ");
+            sprintf(temp, "%d", rxlen);
+            printString(temp);
+            termPutchar('\r');
+            
+            for (i =0; i<rxlen; i++) { //Affichage de la trame envoyée (De tous les octets) :
+              printString("|");
+              sprintf(temp, "%02x", txbuf[i]);
+              printString(temp);
+            }
+            printString("|\r");
 
+          } 
+          else // si on a déjà reçue cette trame, on estime que l'émetteur n'a pas reçu l'aqcuittement
+          { 
+            printString("Duplication de la trame => Absorption de la trame\r");
+          }
 
-// Boucle sans fin : corps du programme
-
-void loop() 
-{
-	switch (state)
-		{case E0: 
-			Serial.printf("EMISSION %d : ",TxSeq);
-			txbuf[0] = TYPE_DATA; txbuf[1] = TxSeq;
-			for (i = 2;i<20;i++)
-			{
-				txbuf[i] = 255;				// 18 octets à 255 de payload (max)
-			}
-			// calcul du FCS : XOR
-			FCS = 0;						// champ de contrôle d'un octet 
-			for (i = 0;i<20;i++) FCS = FCS ^txbuf[i];		// XOR des 20 octets de la trame
-			txbuf[20] = FCS;
-			// affichage pour debug 
-			for (i =0;i<21;i++) Serial.printf("|%02X",txbuf[i]);
-			Serial.println("|");
-			rf95.send(txbuf, 21);		// emission
-			rf95.waitPacketSent();
-			credit--;		// on vient d'émettre une fois de plus la trame
-			state = E1;
-			break;
-
-		 case E1:
-		  attente = millis()+ TIMEOUT_ACK; 		//armement CdG
-		  state = E2;
-		  break;
-
-
-		 case E2:
-		  rf95.setModeRx(); 	// mettre la radio en mode réception pour l'ACK
-		  state = E3;
-		  break;
-
-
-		 case E3:
-		 	if (millis() > attente)
-		 		state = E5;
-		 	else
-		 	{
-		 	if (rf95.recv(rxbuf, &rxbuflen))
-		 		{ // rxbuf[2] = rxbuf[2] + 1 ; 	// simulation erreur de XOR sur ACK
-		 			if (( rxbuf[0]==TYPE_ACK)&&(rxbuf[1]==TxSeq)&&((rxbuf[0]^rxbuf[1])==rxbuf[2]))
-		 				{
-		 					// si la trame reçue est ACK et même numéro que DATA émise et trame juste 
-		 					state = E4;			// si oui on  affiche la trame reçue 
-		 				}
-		 			else state = E2;			// sinon on retourne à l'état E2
-		 			if (( rxbuf[0]==TYPE_ACK)&&(rxbuf[1]==TxSeq)&&((rxbuf[0]^rxbuf[1])!=rxbuf[2])) 
-		 			{ // si la trame reçue est de type ACK et même numéro mais trame erronée
-		 			  state = E5;	// si oui affiche échec
-		 			}
-		 		}
-		 	}
-			break;
-
-		 case E4:
-				Serial.println("ACK_RECU");
-				state = E0; TxSeq++; credit = 5;	// trame suivante
-				break;
-
-		 case E5: 		// si le watchdog expire sans réception d'ACK, ECHEC si crédit épuisé 
-		  Serial.println("E5");
-		  if (credit ==0)
-		 	{
-		 		Serial.println("ECHEC");
-		 		state = E0;
-		 		credit = 5; TxSeq++;		// trame suivante
-		 		break;
-		 	}
-		  else
-		  	{
-		  		Serial.printf("Nouvelle tentative n° %d",5-credit);
-		  		state = E0;
-		  		Serial.println();
-		  		break;
-		  	}
-		 default:
-		 	state = E0;
-		 	break; 
-		}
+          state = E3; // état d'emission du ACK
+          break;
+        
+     case E3: //envoi du ACK
+     
+         printString("Emission du ACK (E3)\r");
+         txbuf[0] = TYPE_ACK; // octet indiquant le type_message = ACK
+         txbuf[1] = rxbuf[1]; //ACK de même numéro de séquence que la trame DATA
+         
+         rf95.send(txbuf, 2); // Envoi de la trame
+         rf95.waitPacketSent(); // Attente que le transceiver ait bien transmis la trame
+   
+         state = E0; // Etat d'écoute
+         break;
+      
+   default:
+       break;
+   }
 }

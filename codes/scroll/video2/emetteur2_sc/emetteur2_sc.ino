@@ -14,6 +14,7 @@ uint8_t txbuflen = RF95_MAX_MESSAGE_LEN;
 uint8_t rxlen = RF95_MAX_MESSAGE_LEN; //variable pour la taille Max du buffer en reception
 uint8_t state,RxSeq,TxSeq, credit; //numéros de séquences
 uint32_t attente; // delai d'attente du chien de garde en ms
+char temp[255];
  
 #define E0 0 //Emission de data
 #define E1 1 // Armer le CDG
@@ -25,7 +26,7 @@ uint32_t attente; // delai d'attente du chien de garde en ms
 #define canal 1 // canal commun emetteur - récepteur
 #define TYPE_DATA 1 // Indique au sein de la trame que c'est une trame DATA
 #define TYPE_ACK 2 // Indique au sein de la trame que c'est une trame ACK
-#define TIMEOUT_ACK 40 // Valeur de chien de garde (40 ms)
+#define TIMEOUT_ACK 200 // Valeur de chien de garde (40 ms)
  
 void setup(){
    M5.Power.begin(); //initialisation de la puissance
@@ -33,23 +34,15 @@ void setup(){
    M5.begin(9600); //règle le débit du M5 à 9600 bauds ( = 9600 b/s)
    Serial.begin(115200);
    
-   char str[255] = "Video DATA Point a point\r ";
-   printString(str);
-   termPutchar('\r');
+   printString("Video DATA Point a point\r\r");
 
-   strcpy(str,"On commence\r");
-   printString(str);
-   termPutchar('\r');
+   printString("On commence\r\r");
  
-   if(!rf95.init()){ //init règle la puissance à 13dBm
-    strcpy(str,"Erreur initialisation RF95\r");  // on vérifie si il y a une erreur avec le transceiver
-    printString(str);
-    termPutchar('\r');
+   if(!rf95.init()){ //init règle la puissance à 13dBm   
+    printString("Erreur initialisation RF95\r\r"); // on vérifie si il y a une erreur avec le transceiver
   }                           // Problèmes possibles : cablages ou drivers logiciels
   else{
-    strcpy(str,"Initialisation OK\r");
-    printString(str);
-    termPutchar('\r');
+    printString("Initialisation OK\r\r");
   }
   
   //configuration des parametres Radio :
@@ -63,38 +56,28 @@ void setup(){
  
    TxSeq = 0; //Initialisation des numeros de séquence des trames envoyées = 0 car DATA 0
    credit = 5; //on fixe le crédit de retransmission à 5. Au bout de 5 problèmes de retransmission, un echec est renvoyé
- 
-   strcpy(str,"boucle principale\r"); // On indique qu'on entre dans la loop boucle
-   printString(str);
-   termPutchar('\r');
   
 }
  
 void loop(){
-  char temp[500];
-  char octet[50];
-  char str[255] = "Video DATA Point a point\r ";
 
   switch (state){
     case E0: // Cas d'un état d'émission
     
       delay(3000);
-      strcpy(str,"EMMISSION\r"); // Affichage de l'état dans lequel on est
-      printString(str);
-      termPutchar('\r');
+      printString("\r------------------------------\rEmission...\r");
 
-      strcpy(str,"numero de sequence de la trame :  \r");
-      printString(str);
+      printString("Numero de sequence de la trame : ");
 
       sprintf(temp, "%u", TxSeq); // Affichage du numéro de séquence courant de l'état
       printString(temp);
-      termPutchar('\r');
       termPutchar('\r');
   
       txbuf[0] = TYPE_DATA; // type de message
       txbuf[1] = TxSeq; // numéro de trame DATA émise
       txbuf[2] = 0x0AA; // Premier octet de DATA utiles 
       txbuf[3] = 0x55; // deuxieme octet de DATA utiles 
+
       rf95.send(txbuf, 4); // envoie de données (une trame de 4 octets)
       rf95.waitPacketSent(); // delai d'attente pour que le RF95 ai bien fini d'emettre
  
@@ -120,10 +103,7 @@ void loop(){
       
       if (millis() > attente)//Vérif si watchdog expiré (Si l'heure courant est supérieure à la valeur max d'attente, alors l'ACK n'est pas arrivé assez rapidement => CDG expiré)
       { 
-        strcpy(str,"ACK non recu dans le buffer\r");
-        printString(str);
-        termPutchar('\r');
-
+        printString("Buffer vide (attente ACK)...\r");
         state = E5; //état d'érreur => attente expirée
        } 
        else //si attente en cours (CdG non expiré)
@@ -143,9 +123,7 @@ void loop(){
        break;
  
     case E4: //affichage de la trame reçue
-      strcpy(str,"ACK_Recu\r"); // On indique qu'on a bien reçu l'aqcuitemment
-      printString(str);
-      termPutchar('\r');
+      printString("ACK recu !\r"); // On indique qu'on a bien reçu l'aqcuitemment
 
       state = E0; // On retourne dans l'état d'emission
       TxSeq++; // On incrémente le numéro de séquence des trames émises
@@ -153,14 +131,11 @@ void loop(){
       break;
  
     case E5: // Echec, car gestion des crédit de (=0)
-      strcpy(str,"etat 5, gestion des credits de repetitions\r");
-      printString(str);
-      termPutchar('\r');
+      printString("\rGestion des credits de repetitions (E5)\r");
+
       if (credit == 0) // Cas où les 5 tentatives sont dépassées
       { 
-          strcpy(str,"ECHEC, credit de repetition depasse\r"); // On indique le problème de non-répétition des trames
-          printString(str);
-          termPutchar('\r');
+          printString("Echec, credit de repetition depasse\r\r"); // On indique le problème de non-répétition des trames
 
           state = E0; // On repasse en mode émission
           credit = 5; // On réinitialise le crédit à 5 pour la prochaine trame
@@ -169,21 +144,14 @@ void loop(){
        } 
        else 
        {
-           strcpy(str,"Nouvelle tentative d'emission de la trame\r"); // Indication que le crédit de répétition n'est pas épuisé
-           printString(str);
-           termPutchar('\r');
+           printString("Nouvelle tentative d'emission de la trame...\r");
 
-           strcpy(str,"nombre de credits restant : \r");
-           printString(str);
-           termPutchar('\r');
-
+           printString("Nombre de credits restant : ");
            sprintf(temp, "%u", credit); // affichage du nombre de crédit qu'il reste
            printString(temp);
-           termPutchar('\r');
-           termPutchar('\r');
+           termPutchar('\r\r');
 
            state = E0; // Mode d'émission
-           termPutchar('\r');
           break;
        }
  
