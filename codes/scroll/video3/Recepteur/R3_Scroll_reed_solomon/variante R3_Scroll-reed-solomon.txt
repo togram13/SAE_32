@@ -1,0 +1,15 @@
+sprintf(temp, "Sr = %d", Sr);
+        printString(temp);
+        sprintf(temp, "SPr = %d\r, SPr);
+        printString(temp);
+        sprintf(temp, "Sc = %d\r", Sc);
+        printString(temp);
+        sprintf(temp, "SPc = %d\r\r", SPc);
+        printString(temp);
+
+sprintf(temp, "Correction de %02x en %02x au rang %d...\r", rxbuf[rang-1];
+          printString(temp);
+          sprintf(temp, "Correction de %02x en %02x au rang %d...\r", rxbuf[rang-1] - erreur);
+          printString(temp);
+          sprintf(temp, "Correction de %02x en %02x au rang %d...\r", rang - 1);
+          printString(temp);
