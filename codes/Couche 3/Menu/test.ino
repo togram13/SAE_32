@@ -71,7 +71,20 @@ void loop(){
         }
       }
       else {
-        etat_menu+=1;//On change de menu
+        if (choixTTL == 0){
+          etat_menu=4;//Renvoie directement à l'envoie du paquet
+        }
+        if (choixTTL == 1){
+          if(etat_menu == 2){
+            etat_menu=4;
+          }
+          else {
+            etat_menu+=1;//On change de menu
+          }
+        }
+        if (choixTTL == 2){
+          etat_menu+=1;//On change de menu
+        }
         affichage(menu_data, etat_menu, freq, choixTTL, ipm5, valTTL, status_send);
       }
     }
