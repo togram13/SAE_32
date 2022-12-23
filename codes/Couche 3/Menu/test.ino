@@ -34,7 +34,7 @@ void loop(){
   //Si 3 Choix du nombre de TTL 
   //Si 4 envoie du packet
 
-  uint16_t freq=867.7;
+  uint16_t freq=BASE_FREQ;
   uint16_t choixTTL=0;
   uint16_t ipm5=BASE_IP_DEST;
   uint16_t valTTL=BASE_VAL_TTL;
@@ -59,6 +59,9 @@ void loop(){
           if (choixTTL == 2){
             Fonction_envoie_data_TTL_Dest(freq, choixTTL, ipm5, valTTL, self_ip);//Envoie la donnée avec TTL avec destination
           }
+          menu_data = 0;
+          etat_menu = 0;
+          affichage(menu_data, etat_menu, freq, choixTTL, ipm5, valTTL, status_send);// Donc affichage du menu d'acceuil
         }
         if (status_send == 1){ //Correspond à l'état "modification"
           etat_menu = 0;
@@ -71,19 +74,24 @@ void loop(){
         }
       }
       else {
-        if (choixTTL == 0){
-          etat_menu=4;//Renvoie directement à l'envoie du paquet
+        if (etat_menu=0) {
+          etat_menu+=1;//On change de menu
         }
-        if (choixTTL == 1){
-          if(etat_menu == 2){
-            etat_menu=4;
+        else {
+          if (choixTTL == 0){
+            etat_menu=4;//Renvoie directement à l'envoie du paquet
           }
-          else {
+          if (choixTTL == 1){
+            if(etat_menu == 2){
+              etat_menu=4;
+            }
+            else {
+              etat_menu+=1;//On change de menu
+            }
+          }
+          if (choixTTL == 2){
             etat_menu+=1;//On change de menu
           }
-        }
-        if (choixTTL == 2){
-          etat_menu+=1;//On change de menu
         }
         affichage(menu_data, etat_menu, freq, choixTTL, ipm5, valTTL, status_send);
       }
@@ -125,7 +133,7 @@ void loop(){
         }
       }
       if (etat_menu == 4){ //Choix d'envoie de la donnée
-        if (status_send+1 <= 2){
+        if (status_send+1 <= 3){
           status_send+=1;
           affichage(menu_data, etat_menu, freq, choixTTL, ipm5, valTTL, status_send);
         }
