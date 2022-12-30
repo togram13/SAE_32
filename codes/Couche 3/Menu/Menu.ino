@@ -18,7 +18,7 @@ RH_RF95 rf95(RFM95_CS, RFM95_DIO0);
 #define NOMBRE_DESTINATAIRES 20 //Nombre maximum d'adresse dans le réseau
 
 #define TTL_MAX 32 //Nombre TTL max
-#define SELF_IP {10,4} //Ip du M5
+#define SELF_IP {10,3} //Ip du M5 sous forme {<réseau>,<id du m5>}
 
 char text[255], temp[255];
 
@@ -35,7 +35,7 @@ uint16_t etat_menu = 0; //état de modification du menu :
 
 uint16_t freq=BASE_FREQ;
 uint16_t send_mode=0;
-uint16_t ipm5[2]=BASE_IP_DEST;
+uint16_t dest_ip[2]=BASE_IP_DEST;
 uint16_t valTTL=BASE_VAL_TTL;
 uint16_t status_send=0;
 int modifreq=0; //permet de supprimer un bug de double clic au niveau de la modification de fréquance
@@ -45,9 +45,10 @@ uint16_t self_ip[2]=SELF_IP;//{10,4}; //Valeur à changer par la vraie IP de not
 int Seq = 0, SeqR = 0, i, d=0;
 int ttl =1 ;
  
-uint8_t derniere_source, source;
+uint8_t derniere_source[2], source[2];
 int derniere_sequence, sequence;
-uint8_t src, seq;
+uint8_t src[2], src_em;
+uint8_t seq, seq_em;
  
 int id = 0;
 int mode;
@@ -130,7 +131,7 @@ void setup(){
   rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128); //Selectionne des config de modems prédéfinis
 
   delay(1000);
-  affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+  affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
 }
 
 void loop(){
@@ -141,46 +142,46 @@ void loop(){
       if (etat_menu == 0){ //Changement de fréquance
         if (freq-PAS_FREQ > MIN_FREQ ){
           freq-=PAS_FREQ;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
         }
       }
       if (etat_menu == 1){ //Choix du type d'envoie
         if (send_mode-1 >= 0){
           send_mode-=1;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
         }
       }
       if (etat_menu == 2){ //Choix du TTL
         if (valTTL-1 >= 0){
           valTTL-=1;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
         }
       }
       if (etat_menu == 3){ //Choix du destinataire
-        if (ipm5[1]-1 == self_ip[1]){
-          if (ipm5[1]-2 >= 0){
-            ipm5[1]-=2;
-            affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+        if (dest_ip[1]-1 == self_ip[1]){
+          if (dest_ip[1]-2 >= 0){
+            dest_ip[1]-=2;
+            affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
           }
         }
         else{
-          if (ipm5[1]-1 >= 0){
-            ipm5[1]-=1;
-            affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          if (dest_ip[1]-1 >= 0){
+            dest_ip[1]-=1;
+            affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
           }
         }
       }
       if (etat_menu == 4){ //Choix d'envoie de la donnée
         if (status_send-1 >= 0){
           status_send-=1;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
         }
       }
     }
     if (menu_data == 0){
       if (freq-PAS_FREQ > MIN_FREQ ){
         freq-=PAS_FREQ;
-        affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+        affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
       }
     }
     delay(1000);
@@ -189,11 +190,11 @@ void loop(){
   if(M5.BtnB.isPressed()){ //Si le bouton B est pressé (correspond à la validation d'un action)
     if (menu_data == 0){ //Si on est sur le menu d'acceuil
       menu_data = 1;
-      affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+      affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
     }
     if (menu_data == 2){
       menu_data = 0;
-      affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+      affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
     }
     else {//sinon
       if (etat_menu == 4){ //Moment d'envoyer le paquet
@@ -201,32 +202,38 @@ void loop(){
           menu_data = 0;
           etat_menu = 0;
           if (send_mode == 0){
-            Fonction_envoie_data_noTTL_noDest(freq);//Envoie la donnée sans TTL ni destination
+            Fonction_envoie_data_noTTL_noDest(send_mode, freq);//Envoie la donnée sans TTL en multidiffusion
           }
           if (send_mode == 1){
-            Fonction_envoie_data_TTL_noDest(freq, valTTL);//Envoie la donnée avec TTL en monodiffusion
+            Fonction_envoie_data_TTL_noDest(send_mode, freq, valTTL);//Envoie la donnée avec TTL en multidiffusion
           }
           if (send_mode == 2){
-            Fonction_envoie_data_TTL_LittleNet(freq, valTTL, self_ip);//Envoie la donnée avec TTL avec destination
+            Fonction_envoie_data_TTL_LittleNet(send_mode, freq, valTTL, self_ip);//Envoie la donnée avec TTL en multidiffusion (1 paquet retenu)
           }
+          if (send_mode == 3){
+            Fonction_envoie_data_TTL_BigNet(send_mode, freq, valTTL, self_ip);//Envoie la donnée avec TTL en multidiffusion (10 paquets retenus)
+          }
+          // if (send_mode == 4){
+          //   Fonction_envoie_data_TTL_Dest(freq, valTTL, self_ip, dest_ip);//Envoie la donnée avec TTL en monodiffusion
+          // }
           delay(5000);
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);// Donc affichage du menu d'acceuil
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);// Donc affichage du menu d'acceuil
         }
         if (status_send == 1){ //Correspond à l'état "modification"
           etat_menu = 0;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
         }
         else { //Annule les l'envoie de données
           menu_data = 0;
           etat_menu = 0;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);// Donc affichage du menu d'acceuil
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);// Donc affichage du menu d'acceuil
         }
       }
       else {
         if (send_mode == 0 && etat_menu == 1) {
           etat_menu=4;//Renvoie directement à l'envoie du paquet
         }
-        if ((send_mode == 1 || send_mode == 2) && etat_menu == 2) {
+        if ((send_mode == 1 || send_mode == 2 || send_mode == 3) && etat_menu == 2) {
           etat_menu=4;//Renvoie directement à l'envoie du paquet
         }
         else {
@@ -240,7 +247,7 @@ void loop(){
             modifreq=1;
           }
         }
-        affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+        affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
       }
     }
     delay(1000);
@@ -251,46 +258,46 @@ void loop(){
       if (etat_menu == 0){ //Changement de fréquance
         if (freq+PAS_FREQ < MAX_FREQ ){
           freq+=PAS_FREQ;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
         }
       }
       if (etat_menu == 1){ //Choix du type d'envoie
-        if (send_mode+1 <= 3){
+        if (send_mode+1 <= 4){
           send_mode+=1;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
         }
       }
       if (etat_menu == 2){ //Choix du TTL
         if (valTTL+1 <= TTL_MAX){
           valTTL+=1;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
         }
       }
       if (etat_menu == 3){ //Choix du destinataire
-        if (ipm5[1]+1 == self_ip[1]){
-          if (ipm5[1]+2 <= NOMBRE_DESTINATAIRES){
-            ipm5[1]+=2;
-            affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+        if (dest_ip[1]+1 == self_ip[1]){
+          if (dest_ip[1]+2 <= NOMBRE_DESTINATAIRES){
+            dest_ip[1]+=2;
+            affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
           }
         }
         else{
-          if (ipm5[1]+1 <= NOMBRE_DESTINATAIRES){
-            ipm5[1]+=1;
-            affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          if (dest_ip[1]+1 <= NOMBRE_DESTINATAIRES){
+            dest_ip[1]+=1;
+            affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
           }
         }
       }
       if (etat_menu == 4){ //Choix d'envoie de la donnée
         if (status_send+1 <= 3){
           status_send+=1;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
         }
       }
     } else {
       if (menu_data == 0){
         if (freq+PAS_FREQ < MAX_FREQ ){
           freq+=PAS_FREQ;
-          affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
+          affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);
         }
       }
     }
@@ -309,51 +316,49 @@ void loop(){
     printString(" ==================================================");
     termPutchar('\r');
     mode = rxbuf[0];
-    if(mode = 0){
-      state = 0; //corespond au mode 2
+    if(mode == 0){
+      state = E0; //corespond au mode 2
     }
-    else if(mode = 1){//corespond au mode 3
-      state = 1;
+    if(mode == 1){//corespond au mode 3
+      state = E1;
     }
-    else if(mode = 2){//corespond au mode 5
-      state = 2;
+    if(mode == 2){//corespond au mode 5
+      state = E2;
     }
-    else if(mode = 3){//corespond au mode 6
-      state = 3;
+    if(mode == 3){//corespond au mode 6
+      state = E3;
     }
-
     switch (state){
-      case E0: //corespond au mode 2: emission d'un paquet sans TTL et avec une destination mulitcast
-        printString("reception du paquet : ");
-        sprintf(temp, "%u", Seq);
+      case E0: //Correspond au mode 2: emission d'un paquet sans TTL et avec une destination mulitcast
+        sprintf(temp, "Reception du paquet : %u", Seq);
         printString(temp);
         termPutchar('\r');
+        termPutchar('\r');
           
-        if(rxbuf[0]==255 && rxbuf[1]==255){
+        if(rxbuf[1]==255 && rxbuf[2]==255){
           
           printString("L'adresse destination est bien une adresse multicast");
           termPutchar('\r');
           termPutchar('\r');
 
           // affichage de la trame
-          for (i = 0; i<4; i++) {
-
+          for (i = 0; i<5; i++) {
             // Affichage de la trame envoyée (De tous les octets) :
             printString(" | ");
             sprintf(temp, "%u", rxbuf[i]);
             printString(temp);
-
           }
           Seq = Seq +1;
           // Boucle pour créer la trame de réemission
-          for (i = 0; i<4; i++) {
+          for (i = 0; i<5; i++) {
           // création de la trame d'envoi:
             txbuf[i] = rxbuf[i];
           }
           termPutchar('\r');
           printString("Reemission du paquet\r");
-
-          rf95.send(txbuf, 4);    // emission
+          termPutchar('\r');
+          termPutchar('\r');
+          rf95.send(txbuf, 5);    // emission
           Seq = Seq +1;  
           rf95.waitPacketSent();
         }
@@ -366,12 +371,11 @@ void loop(){
         break;
 
       case E1: //corespond au mode 3: emission d'un paquet avec TTL et avec une destination mulitcast
-        printString("reception  ");
-        sprintf(temp, "%u", Seq);
+        sprintf(temp, "Reception du paquet : %u", Seq);
         printString(temp);
         termPutchar('\r');
         
-        if(rxbuf[0]==255 && rxbuf[1]==255){
+        if(rxbuf[1]==255 && rxbuf[2]==255){
           
           printString("L'adresse destination est une adresse multicast");
           termPutchar('\r');
@@ -381,14 +385,14 @@ void loop(){
           termPutchar('\r');
 
             // affichage du paquet
-            for (i = 0; i<5; i++) {
+            for (i = 0; i<6; i++) {
 
               // Affichage du paquet récupéré :
               printString(" | ");
               sprintf(temp, "%u", rxbuf[i]);
               printString(temp);
             }
-          ttl = rxbuf[4];
+          ttl = rxbuf[5];
 
           if(ttl >= TTL_MAX){
             termPutchar('\r');
@@ -401,7 +405,7 @@ void loop(){
             Seq = Seq +1;
 
             // Boucle pour créer le paquet de réemission
-            for (i = 0; i<5; i++) {
+            for (i = 0; i<6; i++) {
             // création de la trame d'envoi:
               txbuf[i] = rxbuf[i];
             }
@@ -410,7 +414,7 @@ void loop(){
 
             //incrémentation du TTL de 1 à la réemission
             
-            txbuf[4] = ttl+1;
+            txbuf[5] = ttl+1;
 
             termPutchar('\r');
             printString("TTL : ");  
@@ -423,14 +427,13 @@ void loop(){
             termPutchar('\r');
 
             // affichage du paquet d'envoi
-            for (i = 0; i<5; i++) {
+            for (i = 0; i<6; i++) {
             // Affichage de la trame récupérée
               printString(" | ");
               sprintf(temp, "%u", txbuf[i]);
               printString(temp);
             }
-
-            rf95.send(txbuf, 5);    // emission
+            rf95.send(txbuf, 6);    // emission
             Seq = Seq +1;  
             rf95.waitPacketSent();
           }
@@ -445,61 +448,54 @@ void loop(){
         break;
 
       case E2:
-        sequence = rxbuf[5]; // Sequence du paquet actuel
-        source = rxbuf[3]; // Adresse source du paquet actuel
+        sequence = rxbuf[6]; // Sequence du paquet actuel
+        source[0] = rxbuf[4]; // Adresse source du paquet actuel
+        source[1] = rxbuf[5]; // Adresse source du paquet actuel
     
-        printString("reception paquet n° ");
-        sprintf(temp, "%u", sequence);
+        sprintf(temp, "Reception paquet n° %u", sequence);
         printString(temp);
         termPutchar('\r');
 
-        printString("Adresse source : ");
-
-        sprintf(temp, "%u", rxbuf[3]);
-        printString(temp);
-
-        sprintf(temp, "%u", rxbuf[4]);
+        sprintf(temp, "Adresse source : %u.%u", source[0], source[1]);
         printString(temp);
         termPutchar('\r');
 
-      
-        if(derniere_sequence == sequence && derniere_source == source)
-        {
+        if(derniere_sequence == sequence && derniere_source[0] == source[0] && derniere_source[1] == source[1]) {
           printString("Ce paquet a deja ete reemis => destruction du paquet\n");
+          termPutchar('\r');
+          termPutchar('\r');
+          termPutchar('\r');
+          termPutchar('\r');
+          termPutchar('\r');
+          termPutchar('\r');
           termPutchar('\r');
         }
         else{
 
           derniere_sequence = sequence;
-          derniere_source = source;
+          derniere_source[0] = source[0];
+          derniere_source[1] = source[1];
           
-          if(rxbuf[0]==255 && rxbuf[1]==255){
+          if(rxbuf[1]==255 && rxbuf[2]==255){
             
             printString("L'adresse destination est bien une adresse multicast");
             termPutchar('\r');
+
+            printString("Paquet recu:");
             termPutchar('\r');
-
-            printString("Paquet recu:  ");
             termPutchar('\r');
+            // affichage du paquet
+            for (i = 0; i<9; i++) {
 
-              // affichage du paquet
-              for (i = 0; i<8; i++) {
-
-                // Affichage du paquet récupéré :
-                printString(" | ");
-                sprintf(temp, "%u", rxbuf[i]);
-                printString(temp);
-              }
-            ttl = rxbuf[-1];
+              // Affichage du paquet récupéré :
+              printString(" | ");
+              sprintf(temp, "%u", rxbuf[i]);
+              printString(temp);
+            }
+            ttl = rxbuf[3];
 
             if(ttl >= TTL_MAX){
-              termPutchar('\r');
-            printString("[paquet n° ");
-            sprintf(temp, "%u", sequence);
-            printString(temp);
-
-            printString("] TTL :: ");
-            sprintf(temp, "%u", ttl);
+            sprintf(temp, "[paquet n°%u] TTL :: %u", sequence, ttl);
             printString(temp);
 
             termPutchar('\r');
@@ -509,9 +505,9 @@ void loop(){
               ttl = 1;
             }
             else{            
-
+              
               // création du paquet d'envoi:
-              for (i = 0; i<8; i++) {
+              for (i = 0; i<9; i++) {
                 txbuf[i] = rxbuf[i];
               }
               termPutchar('\r');
@@ -519,37 +515,32 @@ void loop(){
 
               //incrémentation du TTL de 1 à la réemission
               
-              txbuf[2] = ttl+1;
+              txbuf[3] = ttl+1;
 
               termPutchar('\r');
               
-              printString("[paquet n° ");
-              sprintf(temp, "%u", sequence);
-              printString(temp);
-
-              printString("] TTL :: ");
-              sprintf(temp, "%u", ttl);
+              sprintf(temp, "[paquet n°%u] TTL :: %u", sequence, ttl);
               printString(temp);
 
               termPutchar('\r');
 
-              printString("Reemission du paquet:  ");
-
+              printString("Reemission du paquet:");
+              termPutchar('\r');
               // affichage du paquet d'envoi
-              for (i = 0; i<8; i++) {
+              for (i = 0; i<9; i++) {
               // Affichage de la trame récupérée
                 printString(" | ");
                 sprintf(temp, "%u", txbuf[i]);
                 printString(temp);
               }
 
-              rf95.send(txbuf, 8);    // emission  
+              rf95.send(txbuf, 9);    // emission  
               rf95.waitPacketSent();
             }
 
           }
           else{
-            printString("Probleme avec l'adresse destination, ca n'est pas une adresse multicast");
+            printString("Probleme avec l'adresse destination, ce n'est pas une adresse multicast");
             termPutchar('\r');
             termPutchar('\r');
           }
@@ -559,29 +550,27 @@ void loop(){
         break;
 
       case E3:
-        seq = rxbuf[5]; // Sequence du paquet actuel
-        src = rxbuf[3]; // Adresse source du paquet actuel
-      
-        printString("reception paquet n° ");
-        sprintf(temp, "%u", seq);
+        seq = rxbuf[6]; // Sequence du paquet actuel
+        src[0] = rxbuf[4]; // Adresse source du paquet actuel
+        src[1] = rxbuf[5]; // Adresse source du paquet actuel
+        
+        sprintf(temp, "Reception paquet n°%u", seq);
         printString(temp);
         termPutchar('\r');
 
-        printString("Adresse source : ");
-        sprintf(temp, "%u", src);
-        printString(temp);
+        sprintf(temp, "Adresse source : %u.%u", src[0],src[1]);
         printString(temp);
         termPutchar('\r');
 
         
-        isPacketResul = isPacketRouted(tableau, src, seq, &id);
+        isPacketResul = isPacketRouted(tableau, src[1], seq, &id);
 
         if(isPacketResul == 1){
           printString("Paquet deja route => destruction du paquet");
           termPutchar('\r');
         }
         else{
-          if(rxbuf[0]==255 && rxbuf[1]==255){
+          if(rxbuf[1]==255 && rxbuf[2]==255){
             
             printString("L'adresse destination est bien une adresse multicast");
             termPutchar('\r');
@@ -589,26 +578,21 @@ void loop(){
 
             printString("Paquet recu:  ");
               // affichage du paquet
-              for (i = 0; i<8; i++) {
+              for (i = 0; i<9; i++) {
 
                 // Affichage du paquet récupéré :
                 printString(" | ");
                 sprintf(temp, "%u", rxbuf[i]);
                 printString(temp);
               }
-            ttl = rxbuf[-1];
+            ttl = rxbuf[3];
 
             if(ttl >= TTL_MAX){
               termPutchar('\r');
-              printString("[paquet n° ");
-              sprintf(temp, "%u", seq);
+              sprintf(temp, "[paquet n°%u] TTL :: %u", seq, ttl);
               printString(temp);
-
-              printString("] TTL :: ");
-              sprintf(temp, "%u", ttl);
-              printString(temp);
-
               termPutchar('\r');
+
               printString("TTL trop grand => destruction du paquet\r");
               termPutchar('\r');
 
@@ -616,37 +600,31 @@ void loop(){
             }
             else{
               // Boucle pour créer le paquet de réemission
-              for (i = 0; i<8; i++) {
+              for (i = 0; i<9; i++) {
               // création de la trame d'envoi:
                 txbuf[i] = rxbuf[i];
               }
               termPutchar('\r');
               //incrémentation du TTL de 1 à la réemission
               
-              txbuf[2] = ttl+1;
+              txbuf[3] = ttl+1;
 
               termPutchar('\r');
-              termPutchar('\r');
-              printString("[paquet n° ");
-              sprintf(temp, "%u", seq);
-              printString(temp);
-
-              printString("] TTL :: ");
-              sprintf(temp, "%u", ttl);
+              sprintf(temp, "[paquet n°%u] TTL :: %u", seq, ttl);
               printString(temp);
 
               termPutchar('\r');
               printString("Reemission du paquet:  ");
 
               // affichage du paquet d'envoi
-              for (i = 0; i<8; i++) {
+              for (i = 0; i<9; i++) {
               // Affichage de la trame récupérée
                 printString(" | ");
                 sprintf(temp, "%u", txbuf[i]);
                 printString(temp);
               }
 
-              rf95.send(txbuf, 8);    // emission  
+              rf95.send(txbuf, 9);    // emission  
               rf95.waitPacketSent();
             }
           }

@@ -1,7 +1,7 @@
 //Utile pour les petits réseaux car ce mode permet de garder en mémoire le dernier paquet reçu et donc savoir si on nous l'a déjà envoyé ou pas.
 
 // Emission d'un seul paquet (Le premier)
-void Fonction_envoie_data_TTL_LittleNet(uint16_t freq, uint16_t valTTL, uint16_t *ipm5){
+void Fonction_envoie_data_TTL_LittleNet(uint16_t send_mode, uint16_t freq, uint16_t valTTL, uint16_t *self_ip){
   M5.Lcd.clear(BLACK); //Permet d'effacer l'écran
   rf95.setFrequency(freq);
   sequence = sequence+1;
@@ -11,29 +11,32 @@ void Fonction_envoie_data_TTL_LittleNet(uint16_t freq, uint16_t valTTL, uint16_t
   termPutchar('\r');
   
   //Remplissage des octets de la trame :
-  txbuf[0] = 255; // Premier octet reservé à l'adresse broadcast
-  txbuf[1] = 255; // Deuxieme octet réservé à l'adresse broadcast
-  txbuf[2] = valTTL; // troisième octet réservé au ttl (durée de vie du paquet)
-  txbuf[3] = self_ip[0]; // 4ème octet réservé à l'adresse source
-  txbuf[4] = self_ip[1]; // Deuxieme octet réservé à l'adresse source
-  txbuf[5] = sequence; // Deuxieme octet réservé à l'adresse source
+  txbuf[0] = send_mode; // Premier octet réservé au mode d'envoie
+  txbuf[1] = 255; // // Deuxième octet reservé à l'adresse broadcast
+  txbuf[2] = 255; // Troisième octet réservé à l'adresse broadcast
+  txbuf[3] = valTTL; // 4ème octet réservé au ttl (durée de vie du paquet)
+  txbuf[4] = self_ip[0]; // 5ème octet réservé à l'adresse source
+  txbuf[5] = self_ip[1]; // Deuxieme octet réservé à l'adresse source
+  txbuf[6] = sequence; // Deuxieme octet réservé à l'adresse source
 
-  sequence = txbuf[5];
-  source = txbuf[3];
+  sequence = txbuf[6];
+  source[0] = txbuf[4];
+  source[1] = txbuf[5];
 
   derniere_sequence = sequence;
-  derniere_source = source;
+  derniere_source[0] = source[0];
+  derniere_source[1] = source[1];
 
-  sprintf(temp, "Adresse source : %u.%u", txbuf[3], txbuf[4]);
+  sprintf(temp, "Adresse source : %u.%u", source[4], source[5]);
   printString(temp);
   termPutchar('\r');
 
-  for (i = 6; i<8; i++) {// On insère 2 octets de données utiles dans la trame
+  for (i = 7; i<9; i++) {// On insère 2 octets de données utiles dans la trame
     txbuf[i] = 128;// 2 octets à 128 de payload
   }
 
   // affichage pour debug
-  for (i = 0; i<8; i++) {
+  for (i = 0; i<9; i++) {
     // Affichage de la trame envoyée (De tous les octets) :
     printString(" | ");
     sprintf(temp, "%u", txbuf[i]);
@@ -43,6 +46,6 @@ void Fonction_envoie_data_TTL_LittleNet(uint16_t freq, uint16_t valTTL, uint16_t
     termPutchar('\r');
     termPutchar('\r');
 
-  rf95.send(txbuf, 8);    // emission des 8 octets du paquet
+  rf95.send(txbuf, 9);    // emission des 9 octets du paquet
   rf95.waitPacketSent();
 }

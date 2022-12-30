@@ -75,7 +75,8 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
   Serial.printf("etat menu : %d\n",etat_menu);
   Serial.printf("Freq : %d\n",freq);
   Serial.printf("Mode d'envoie : %d\n",send_mode);
-  Serial.printf("Ipdestm5 : %d.%d\n", ipm5[0], ipm5[1]);
+  Serial.printf("Ip du m5 : %d.%d\n", self_ip[0], self_ip[1]);
+  Serial.printf("Ip de destintion du m5 : %d.%d\n", ipm5[0], ipm5[1]);
   Serial.printf("Val TTL : %d\n",valTTL);
   Serial.printf("Status send : %d\n",status_send);
 }
