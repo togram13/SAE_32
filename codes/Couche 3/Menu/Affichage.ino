@@ -3,7 +3,7 @@
 #include <M5Stack.h>
 
 //Fonction d'affichage
-void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t send_mode, uint16_t valTTL, uint16_t ipm5, uint16_t status_send){
+void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t send_mode, uint16_t valTTL, uint16_t *ipm5, uint16_t status_send){
   M5.Lcd.clear();
   if (menu_data == 0) {
     printString(" ==================================================");
@@ -12,7 +12,7 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
     termPutchar('\r');
     printString(" ==================================================");
     termPutchar('\r');
-    sprintf(text, "Ip du m5 stack: %d", SELF_IP);
+    sprintf(text, "Ip du m5 stack: %d.%d", self_ip[0], self_ip[1]);
     printString(text);
     termPutchar('\r');
     sprintf(text, "Frequance d'ecoute: %d", freq);
@@ -75,7 +75,7 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
   Serial.printf("etat menu : %d\n",etat_menu);
   Serial.printf("Freq : %d\n",freq);
   Serial.printf("Mode d'envoie : %d\n",send_mode);
-  Serial.printf("Ipdestm5 : %d\n",ipm5);
+  Serial.printf("Ipdestm5 : %d.%d\n", ipm5[0], ipm5[1]);
   Serial.printf("Val TTL : %d\n",valTTL);
   Serial.printf("Status send : %d\n",status_send);
 }
@@ -153,7 +153,7 @@ void message_choix_valTTL(uint16_t etat_menu, uint16_t valTTL){
   }
 }
 
-void message_choix_dest(uint16_t etat_menu, uint16_t ipm5){
+void message_choix_dest(uint16_t etat_menu, uint16_t *ipm5){
   if (etat_menu == 3) {
     sprintf(text, "Destination : <-- %d -->", ipm5);
     printString(text);

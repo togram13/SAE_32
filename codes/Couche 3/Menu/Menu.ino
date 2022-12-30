@@ -8,7 +8,7 @@ RH_RF95 rf95(RFM95_CS, RFM95_DIO0);
 
 #define BASE_FREQ 867.7
 #define BASE_CHOIX_TTL 0
-#define BASE_IP_DEST 5
+#define BASE_IP_DEST {10,5}// Ip de destination sous forme {<réseau>,<id du m5>}
 #define BASE_VAL_TTL 7
 
 #define MAX_FREQ 1000
@@ -18,7 +18,7 @@ RH_RF95 rf95(RFM95_CS, RFM95_DIO0);
 #define NOMBRE_DESTINATAIRES 20 //Nombre maximum d'adresse dans le réseau
 
 #define TTL_MAX 32 //Nombre TTL max
-#define SELF_IP 4 //Ip du M5
+#define SELF_IP {10,4} //Ip du M5
 
 char text[255], temp[255];
 
@@ -35,12 +35,12 @@ uint16_t etat_menu = 0; //état de modification du menu :
 
 uint16_t freq=BASE_FREQ;
 uint16_t send_mode=0;
-uint16_t ipm5=BASE_IP_DEST;
+uint16_t ipm5[2]=BASE_IP_DEST;
 uint16_t valTTL=BASE_VAL_TTL;
 uint16_t status_send=0;
 int modifreq=0; //permet de supprimer un bug de double clic au niveau de la modification de fréquance
 
-uint16_t self_ip=4; //Valeur à changer par la vraie IP de notre M5 Stack
+uint16_t self_ip[2]=SELF_IP;//{10,4}; //Valeur à changer par la vraie IP de notre M5 Stack
 
 int Seq = 0, SeqR = 0, i, d=0;
 int ttl =1 ;
@@ -108,11 +108,6 @@ int isPacketRouted(struct identifiant tab[10], uint16_t source, uint8_t sequence
       }
     }
   }
- 
-}
-
-void Fonction_envoie_data_TTL_Dest(uint16_t freq, uint16_t valTTL, uint16_t ipm5, uint16_t self_ip){
-  M5.Lcd.clear(BLACK); //Permet d'effacer l'écran
 }
 
 void setup(){
@@ -162,15 +157,15 @@ void loop(){
         }
       }
       if (etat_menu == 3){ //Choix du destinataire
-        if (ipm5-1 == self_ip){
-          if (ipm5-2 >= 0){
-            ipm5-=2;
+        if (ipm5[1]-1 == self_ip[1]){
+          if (ipm5[1]-2 >= 0){
+            ipm5[1]-=2;
             affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
           }
         }
         else{
-          if (ipm5-1 >= 0){
-            ipm5-=1;
+          if (ipm5[1]-1 >= 0){
+            ipm5[1]-=1;
             affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
           }
         }
@@ -212,7 +207,7 @@ void loop(){
             Fonction_envoie_data_TTL_noDest(freq, valTTL);//Envoie la donnée avec TTL en monodiffusion
           }
           if (send_mode == 2){
-            Fonction_envoie_data_TTL_Dest(freq, valTTL, ipm5, self_ip);//Envoie la donnée avec TTL avec destination
+            Fonction_envoie_data_TTL_LittleNet(freq, valTTL, self_ip);//Envoie la donnée avec TTL avec destination
           }
           delay(5000);
           affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);// Donc affichage du menu d'acceuil
@@ -231,14 +226,12 @@ void loop(){
         if (send_mode == 0 && etat_menu == 1) {
           etat_menu=4;//Renvoie directement à l'envoie du paquet
         }
-        if (send_mode == 1 && etat_menu == 2) {
+        if ((send_mode == 1 || send_mode == 2) && etat_menu == 2) {
           etat_menu=4;//Renvoie directement à l'envoie du paquet
         }
         else {
           if ((etat_menu > 0 && etat_menu < 4) || modifreq==1){
-            Serial.printf("%d", etat_menu);
             etat_menu+=1; //On change de configuration
-            Serial.printf("%d",etat_menu);
             modifreq=0;
           }
         }
@@ -274,15 +267,15 @@ void loop(){
         }
       }
       if (etat_menu == 3){ //Choix du destinataire
-        if (ipm5+1 == self_ip){
-          if (ipm5+2 <= NOMBRE_DESTINATAIRES){
-            ipm5+=2;
+        if (ipm5[1]+1 == self_ip[1]){
+          if (ipm5[1]+2 <= NOMBRE_DESTINATAIRES){
+            ipm5[1]+=2;
             affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
           }
         }
         else{
-          if (ipm5+1 <= NOMBRE_DESTINATAIRES){
-            ipm5+=1;
+          if (ipm5[1]+1 <= NOMBRE_DESTINATAIRES){
+            ipm5[1]+=1;
             affichage(menu_data, etat_menu, freq, send_mode, valTTL, ipm5, status_send);
           }
         }
