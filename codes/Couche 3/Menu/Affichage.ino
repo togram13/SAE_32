@@ -15,7 +15,7 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
     sprintf(text, "Ip du m5 stack: %d.%d", self_ip[0], self_ip[1]);
     printString(text);
     termPutchar('\r');
-    sprintf(text, "Frequance d'ecoute: %d", freq);
+    sprintf(text, "Frequence d'ecoute: %d", freq);
     printString(text);
     termPutchar('\r');
     termPutchar('\r');
@@ -60,7 +60,7 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
       message_choix_freq(etat_menu, freq);
       message_choix_TTL(etat_menu, send_mode);
       message_choix_valTTL(etat_menu, valTTL);
-      //message_choix_dest(etat_menu, dest_ip);
+      message_choix_dest(etat_menu, dest_ip);
       message_envoie(etat_menu, status_send);
       termPutchar('\r');
     }
@@ -83,12 +83,12 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
 
 void message_choix_freq(uint16_t etat_menu, uint16_t freq){
   if (etat_menu == 0) {
-    sprintf(text, "Frequance : <-- %d -->", freq);
+    sprintf(text, "Frequence : <-- %d -->", freq);
     printString(text);
     termPutchar('\r');
   }
   else {
-    sprintf(text, "Frequance : %d", freq);
+    sprintf(text, "Frequence : %d", freq);
     printString(text);
     termPutchar('\r');
   }
@@ -154,18 +154,18 @@ void message_choix_valTTL(uint16_t etat_menu, uint16_t valTTL){
   }
 }
 
-// void message_choix_dest(uint16_t etat_menu, uint16_t *dest_ip){
-//   if (etat_menu == 3) {
-//     sprintf("Ip de destintion : <-- %d.%d -->\n", dest_ip[0], dest_ip[0]);
-//     printString(text);
-//     termPutchar('\r');
-//   }
-//   else {
-//     sprintf("Ip de destintion : %d.%d\n", dest_ip[0], dest_ip[1]);
-//     printString(text);
-//     termPutchar('\r');
-//   }
-// }
+void message_choix_dest(uint16_t etat_menu, uint16_t *dest_ip){
+  if (etat_menu == 3) {
+    sprintf(text, "Ip de destintion : <-- %d.%d -->\n", dest_ip[0], dest_ip[0]);
+    printString(text);
+    termPutchar('\r');
+  }
+  else {
+    sprintf(text, "Ip de destintion : %d.%d\n", dest_ip[0], dest_ip[1]);
+    printString(text);
+    termPutchar('\r');
+  }
+}
 
 void message_envoie(uint16_t etat_menu, uint16_t status_send){
   if (etat_menu == 4){

@@ -18,7 +18,7 @@ RH_RF95 rf95(RFM95_CS, RFM95_DIO0);
 #define NOMBRE_DESTINATAIRES 20 //Nombre maximum d'adresse dans le réseau
 
 #define TTL_MAX 32 //Nombre TTL max
-#define SELF_IP {10,6} //IP du M5 sous forme {<réseau>,<id du m5>}
+#define SELF_IP {10,8} //IP du M5 sous forme {<réseau>,<id du m5>}
 
 char text[255], temp[255];
 
@@ -40,7 +40,7 @@ uint16_t valTTL=BASE_VAL_TTL;
 uint16_t status_send=0;
 int modifreq=0; //permet de supprimer un bug de double clic au niveau de la modification de fréquance
 
-uint16_t self_ip[2]=SELF_IP;//{10,4}; //Valeur à changer par la vraie IP de notre M5 Stack
+uint16_t self_ip[2]=SELF_IP; //Valeur à changer par la vraie IP de notre M5 Stack
 
 int Seq = 0, SeqR = 0, i, d=0;
 int ttl =1 ;
@@ -62,6 +62,7 @@ uint8_t state; // Implémentation d'un switch pour les différents modes
 #define E1 1 // limitation avec ttl (mode de réception 3)
 #define E2 2 // contrôle avec adresse source + numéro de séquence par rapport au dernier paquet routé (mode de réception 5)
 #define E3 3 // contrôle avec adresse source + numéro de séquence par rapport au 10 derniers paquets routé (mode de réception 6)
+#define E4 4 // limitation avec ttl et envoie un paquet vers une destination
 
 struct identifiant{
  
@@ -214,9 +215,9 @@ void loop(){
           if (send_mode == 3){
             Fonction_envoie_data_TTL_BigNet(send_mode, freq, valTTL, self_ip);//Envoie la donnée avec TTL en multidiffusion (10 paquets retenus)
           }
-          // if (send_mode == 4){
-          //   Fonction_envoie_data_TTL_Dest(freq, valTTL, self_ip, dest_ip);//Envoie la donnée avec TTL en monodiffusion
-          // }
+          if (send_mode == 4){
+            Fonction_envoie_data_TTL_Dest(send_mode, freq, valTTL, self_ip, dest_ip);//Envoie la donnée avec TTL en monodiffusion
+          }
           delay(5000);
           affichage(menu_data, etat_menu, freq, send_mode, valTTL, dest_ip, status_send);// Donc affichage du menu d'acceuil
         }
@@ -319,16 +320,19 @@ void loop(){
     termPutchar('\r');
     mode = rxbuf[0];
     if(mode == 0){
-      state = E0; //corespond au mode 2
+      state = E0; //correspond au mode 2
     }
-    if(mode == 1){//corespond au mode 3
+    if(mode == 1){//correspond au mode 3
       state = E1;
     }
-    if(mode == 2){//corespond au mode 5
+    if(mode == 2){//correspond au mode 5
       state = E2;
     }
-    if(mode == 3){//corespond au mode 6
+    if(mode == 3){//correspond au mode 6
       state = E3;
+    }
+    if(mode == 4){//correspond a un mode monodiffusion
+      state = E4;
     }
     switch (state){
       case E0: //Correspond au mode 2: emission d'un paquet sans TTL et avec une destination mulitcast
@@ -638,10 +642,104 @@ void loop(){
           termPutchar('\r');
           termPutchar('\r');
         }
-        break;      
+        break;
+
+      case E4:
+        sprintf(temp, "Reception du paquet : %u", Seq);
+        printString(temp);
+        termPutchar('\r');
+        
+        if(rxbuf[1]==self_ip[0] && rxbuf[2]==self_ip[1]){
+
+          sprintf(temp, "L'adresse correspond à l'ip de ce m5stack (%d.%d)", rxbuf[1],rxbuf[2]);
+          termPutchar('\r');
+          termPutchar('\r');
+
+          ttl = 1;
+
+          printString("Paquet recu :  ");
+          termPutchar('\r');
+          
+          // affichage du paquet
+          for (i = 0; i<9; i++) {
+
+            // Affichage du paquet récupéré :
+            printString(" | ");
+            sprintf(temp, "%u", rxbuf[i]);
+            printString(temp);
+          }
+          sprintf(temp, "Source : %d.%d", rxbuf[3],rxbuf[4]);
+          printString(temp);
+          sprintf(temp, "TTL : %d", rxbuf[5]);
+          printString(temp);
+        }
+        else{
+          printString("L'adresse ne correspond pas a l'ip de ce m5stack");
+          termPutchar('\r');
+          termPutchar('\r');
+
+          printString("Paquet recu :  ");
+          termPutchar('\r');
+
+            // affichage du paquet
+            for (i = 0; i<9; i++) {
+
+              // Affichage du paquet récupéré :
+              printString(" | ");
+              sprintf(temp, "%u", rxbuf[i]);
+              printString(temp);
+            }
+          ttl = rxbuf[5];
+
+          if(ttl >= TTL_MAX){
+            termPutchar('\r');
+            printString("TTL trop grand => destruction du paquet\r");
+            termPutchar('\r');
+
+            ttl = 1;
+          }
+          else{
+            Seq = Seq +1;
+
+            // Boucle pour créer le paquet de réemission
+            for (i = 0; i<9; i++) {
+            // création de la trame d'envoi:
+              txbuf[i] = rxbuf[i];
+            }
+            termPutchar('\r');
+
+
+            //incrémentation du TTL de 1 à la réemission
+            
+            txbuf[5] = ttl+1;
+
+            termPutchar('\r');
+            printString("TTL : ");  
+            sprintf(temp, "%u", ttl);
+            printString(temp);
+            termPutchar('\r');
+            termPutchar('\r');
+
+            printString("Reemission du paquet :  ");
+            termPutchar('\r');
+
+            // affichage du paquet d'envoi
+            for (i = 0; i<9; i++) {
+            // Affichage de la trame récupérée
+              printString(" | ");
+              sprintf(temp, "%u", txbuf[i]);
+              printString(temp);
+            }
+            rf95.send(txbuf, 9); // emission
+            Seq = Seq +1;  
+            rf95.waitPacketSent();
+          }
+        }
+        termPutchar('\r');
+        termPutchar('\r');
+        break;
+
     }
     printString("[Bouton central pour retourner au menu principal]");
   }
-
-
 }
