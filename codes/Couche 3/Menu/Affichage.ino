@@ -3,7 +3,7 @@
 #include <M5Stack.h>
 
 //Fonction d'affichage
-void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t send_mode, uint16_t valTTL, uint16_t *ipm5, uint16_t status_send){
+void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t send_mode, uint16_t valTTL, uint16_t *dest_ip, uint16_t status_send){
   M5.Lcd.clear();
   if (menu_data == 0) {
     printString(" ==================================================");
@@ -60,7 +60,7 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
       message_choix_freq(etat_menu, freq);
       message_choix_TTL(etat_menu, send_mode);
       message_choix_valTTL(etat_menu, valTTL);
-      message_choix_dest(etat_menu, ipm5);
+      //message_choix_dest(etat_menu, dest_ip);
       message_envoie(etat_menu, status_send);
       termPutchar('\r');
     }
@@ -76,7 +76,7 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
   Serial.printf("Freq : %d\n",freq);
   Serial.printf("Mode d'envoie : %d\n",send_mode);
   Serial.printf("Ip du m5 : %d.%d\n", self_ip[0], self_ip[1]);
-  Serial.printf("Ip de destintion du m5 : %d.%d\n", ipm5[0], ipm5[1]);
+  Serial.printf("Ip de destintion du m5 : %d.%d\n", dest_ip[0], dest_ip[1]);
   Serial.printf("Val TTL : %d\n",valTTL);
   Serial.printf("Status send : %d\n",status_send);
 }
@@ -154,18 +154,18 @@ void message_choix_valTTL(uint16_t etat_menu, uint16_t valTTL){
   }
 }
 
-void message_choix_dest(uint16_t etat_menu, uint16_t *ipm5){
-  if (etat_menu == 3) {
-    sprintf(text, "Destination : <-- %d -->", ipm5);
-    printString(text);
-    termPutchar('\r');
-  }
-  else {
-    sprintf(text, "Destination : %d", ipm5);
-    printString(text);
-    termPutchar('\r');
-  }
-}
+// void message_choix_dest(uint16_t etat_menu, uint16_t *dest_ip){
+//   if (etat_menu == 3) {
+//     sprintf("Ip de destintion : <-- %d.%d -->\n", dest_ip[0], dest_ip[0]);
+//     printString(text);
+//     termPutchar('\r');
+//   }
+//   else {
+//     sprintf("Ip de destintion : %d.%d\n", dest_ip[0], dest_ip[1]);
+//     printString(text);
+//     termPutchar('\r');
+//   }
+// }
 
 void message_envoie(uint16_t etat_menu, uint16_t status_send){
   if (etat_menu == 4){

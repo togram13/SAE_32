@@ -28,7 +28,6 @@ void Fonction_envoie_data_TTL_noDest(uint16_t send_mode, uint16_t freq, uint16_t
   termPutchar('\r');
   termPutchar('\r');
 
-  delay(1000);
   rf95.send(txbuf, 6);    // emission
   Seq = Seq +1;  
   rf95.waitPacketSent();

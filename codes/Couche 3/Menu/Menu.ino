@@ -13,12 +13,12 @@ RH_RF95 rf95(RFM95_CS, RFM95_DIO0);
 
 #define MAX_FREQ 1000
 #define MIN_FREQ 600
-#define PAS_FREQ 10 //Valeur d'ajout/de soustraction de fréquance avec les boutons B et C
+#define PAS_FREQ 10 //Valeur d'ajout/de soustraction de fréquence avec les boutons B et C
 
 #define NOMBRE_DESTINATAIRES 20 //Nombre maximum d'adresse dans le réseau
 
 #define TTL_MAX 32 //Nombre TTL max
-#define SELF_IP {10,3} //Ip du M5 sous forme {<réseau>,<id du m5>}
+#define SELF_IP {10,6} //IP du M5 sous forme {<réseau>,<id du m5>}
 
 char text[255], temp[255];
 
@@ -116,6 +116,7 @@ void setup(){
   termInit();
   M5.begin(9600); //règle le débit du M5 à 9600 bauds ( = 9600 b/s)
   Serial.begin(115200);
+  rf95.setFrequency(freq); //règle la fréquence d'emission avec la valeure de base
 
   M5.Lcd.setTextColor(WHITE, TFT_BLACK);
 
@@ -306,6 +307,7 @@ void loop(){
 
   //Partie reception d'un message
   rf95.setModeRx(); //Passage en mode recepteur
+  delay(500);
 
   if (rf95.recv(rxbuf, &rxbuflen)) { // Si il y a quelque chose dans le buffeur, alors:
     menu_data = 2;
