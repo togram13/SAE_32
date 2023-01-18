@@ -74,9 +74,9 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
   Serial.printf("Menu data : %d \n",menu_data);
   Serial.printf("etat menu : %d\n",etat_menu);
   Serial.printf("Freq : %d\n",freq);
-  Serial.printf("Mode d'envoie : %d\n",send_mode);
-  Serial.printf("Ip du m5 : %d.%d\n", self_ip[0], self_ip[1]);
-  Serial.printf("Ip de destintion du m5 : %d.%d\n", dest_ip[0], dest_ip[1]);
+  Serial.printf("Mode de transmission : %d\n",send_mode);
+  Serial.printf("Adresse du m5 : %d.%d\n", self_ip[0], self_ip[1]);
+  Serial.printf("Adresse de destintion du m5 : %d.%d\n", dest_ip[0], dest_ip[1]);
   Serial.printf("Val TTL : %d\n",valTTL);
   Serial.printf("Status send : %d\n",status_send);
 }
@@ -97,45 +97,45 @@ void message_choix_freq(uint16_t etat_menu, uint16_t freq){
 void message_choix_TTL(uint16_t etat_menu, uint16_t send_mode){
   if (etat_menu == 1){
     if (send_mode == 0){
-      printString("Mode d'envoie : <-- Pas de TTL + Multidiffusion -->");
+      printString("Mode de transmission : <-- Pas de TTL + Multidiffusion -->");
       termPutchar('\r');
     }
     if (send_mode == 1){
-      printString("Mode d'envoie : <-- TTL + Multidiffusion -->");
+      printString("Mode de transmission : <-- TTL + Multidiffusion -->");
       termPutchar('\r');
     }
     if (send_mode == 2){
-      printString("Mode d'envoie : <-- TTL + Multidiffusion + 1 paquet memoire -->");
+      printString("Mode de transmission : <-- TTL + Multidiffusion + 1 paquet memoire -->");
       termPutchar('\r');
     }
     if (send_mode == 3){
-      printString("Mode d'envoie : <-- TTL + Multidiffusion + 10 paquets memoire -->");
+      printString("Mode de transmission : <-- TTL + Multidiffusion + 10 paquets memoire -->");
       termPutchar('\r');
     }
     if (send_mode == 4){
-      printString("Mode d'envoie : <-- TTL + Destination -->");
+      printString("Mode de transmission : <-- TTL + Destination -->");
       termPutchar('\r');
     }
   }
   else {
     if (send_mode == 0){
-      printString("Mode d'envoie : Pas de TTL + Multidiffusion");
+      printString("Mode de transmission : Pas de TTL + Multidiffusion");
       termPutchar('\r');
     }
     if (send_mode == 1){
-      printString("Mode d'envoie : TTL + Multidiffusion");
+      printString("Mode de transmission : TTL + Multidiffusion");
       termPutchar('\r');
     }
     if (send_mode == 2){
-      printString("Mode d'envoie : TTL + Multidiffusion + 1 paquet memoire");
+      printString("Mode de transmission : TTL + Multidiffusion + 1 paquet memoire");
       termPutchar('\r');
     }
     if (send_mode == 3){
-      printString("Mode d'envoie : TTL + Multidiffusion + 10 paquets memoire");
+      printString("Mode de transmission : TTL + Multidiffusion + 10 paquets memoire");
       termPutchar('\r');
     }
     if (send_mode == 4){
-      printString("Mode d'envoie : TTL + Destination");
+      printString("Mode de transmission : TTL + Destination");
       termPutchar('\r');
     }
   }
@@ -156,12 +156,12 @@ void message_choix_valTTL(uint16_t etat_menu, uint16_t valTTL){
 
 void message_choix_dest(uint16_t etat_menu, uint16_t *dest_ip){
   if (etat_menu == 3) {
-    sprintf(text, "Ip de destintion : <-- %d.%d -->\n", dest_ip[0], dest_ip[1]);
+    sprintf(text, "Adresse de destintion : <-- %d.%d -->\n", dest_ip[0], dest_ip[1]);
     printString(text);
     termPutchar('\r');
   }
   else {
-    sprintf(text, "Ip de destintion : %d.%d\n", dest_ip[0], dest_ip[1]);
+    sprintf(text, "Adresse de destintion : %d.%d\n", dest_ip[0], dest_ip[1]);
     printString(text);
     termPutchar('\r');
   }

@@ -13,7 +13,7 @@
 RH_RF95 rf95(RFM95_CS, RFM95_DIO0);
 
 #define BASE_FREQ 800
-#define BASE_IP_DEST {10,5}// Ip de destination initiale sous forme {<réseau>,<id du m5>}
+#define BASE_IP_DEST {10,5}// Adresse de destination initiale sous forme {<réseau>,<id du m5>}
 #define BASE_VAL_TTL 7
 
 #define MAX_FREQ 868 //Valeur maximum de la bande ISM
@@ -23,12 +23,12 @@ RH_RF95 rf95(RFM95_CS, RFM95_DIO0);
 #define NOMBRE_DESTINATAIRES 20 //Nombre maximum d'adresse dans le réseau
 
 #define TTL_MAX 32 //Nombre TTL maximum
-#define SELF_IP {10,6} //IP du M5 sous forme {<réseau>,<id du m5>}
+#define SELF_IP {10,6} //Adresse du M5 sous forme {<réseau>,<id du m5>}
 
 char text[255], temp[255];
 
 uint8_t menu_data = 0; //état du menu : 
-  //Si 0 alors menu de base avec juste écrit l'ip 
+  //Si 0 alors menu de base avec juste écrit l'adresse et la fréquence 
   //Si 1 alors dans le menu d'envoie
   //Si 2 alors reception d'une donnée
 uint16_t etat_menu = 0; //état de modification du menu : 
@@ -325,22 +325,22 @@ void loop(){
     termPutchar('\r');
     mode = rxbuf[0];
     if(mode == 0){
-      state = E0; //Correspond au code de la vidéo 2
+      state = E0; //Correspond au code du TP-NWK-Etudiant 4.2
     }
-    if(mode == 1){//Correspond au code de la vidéo 3
+    if(mode == 1){//Correspond au code du TP-NWK-Etudiant 4.3
       state = E1;
     }
-    if(mode == 2){//Correspond au code de la vidéo 5
+    if(mode == 2){//Correspond au code du TP-NWK-Etudiant 4.5
       state = E2;
     }
-    if(mode == 3){//Correspond au code de la vidéo 6
+    if(mode == 3){//Correspond au code du TP-NWK-Etudiant 4.6
       state = E3;
     }
-    if(mode == 4){//Correspond a un mode monodiffusion sur les bases du code de la vidéo 3
+    if(mode == 4){//Correspond a un mode monodiffusion sur les bases du code du TP-NWK-Etudiant 4.3
       state = E4;
     }
     switch (state){
-      case E0: //Correspond au code de la vidéo 2: emission d'un paquet sans TTL et avec une destination mulitcast
+      case E0: //Correspond au code du TP-NWK-Etudiant 4.2: emission d'un paquet sans TTL et avec une destination mulitcast
         sprintf(temp, "Reception du paquet : %u", Seq);
         printString(temp);
         termPutchar('\r');
@@ -381,7 +381,7 @@ void loop(){
         termPutchar('\r');
         break;
 
-      case E1: //corespond au code de la vidéo 3: emission d'un paquet avec TTL et avec une destination mulitcast
+      case E1: //corespond au code du TP-NWK-Etudiant 4.3: emission d'un paquet avec TTL et avec une destination mulitcast
         sprintf(temp, "Reception du paquet : %u", Seq);
         printString(temp);
         termPutchar('\r');
@@ -457,7 +457,7 @@ void loop(){
         termPutchar('\r');
         break;
 
-      case E2: //Correspond au code de la vidéo 5
+      case E2: //Correspond au code du TP-NWK-Etudiant 4.5
         sequence = rxbuf[6]; // Sequence du paquet actuel
         source[0] = rxbuf[4]; // Adresse source du paquet actuel
         source[1] = rxbuf[5]; // Adresse source du paquet actuel
@@ -559,7 +559,7 @@ void loop(){
         }
         break;
 
-      case E3: //Correspond au code de la vidéo 5
+      case E3: //Correspond au code du TP-NWK-Etudiant 4.5
         seq = rxbuf[6]; // Sequence du paquet actuel
         src[0] = rxbuf[4]; // Adresse source du paquet actuel
         src[1] = rxbuf[5]; // Adresse source du paquet actuel
