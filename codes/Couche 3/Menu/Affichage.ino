@@ -8,7 +8,7 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
   if (menu_data == 0) {
     printString(" ==================================================");
     termPutchar('\r');
-    printString("                    Mode ecoute");
+    printString("                Menu ecoute");
     termPutchar('\r');
     printString(" ==================================================");
     termPutchar('\r');
@@ -27,7 +27,7 @@ void affichage(uint8_t menu_data, uint16_t etat_menu, uint16_t freq, uint16_t se
   else {
     printString(" ==================================================");
     termPutchar('\r');
-    printString("                    Mode d'edition");
+    printString("                Menu d'edition");
     termPutchar('\r');
     printString(" ==================================================");
     termPutchar('\r');
@@ -156,7 +156,7 @@ void message_choix_valTTL(uint16_t etat_menu, uint16_t valTTL){
 
 void message_choix_dest(uint16_t etat_menu, uint16_t *dest_ip){
   if (etat_menu == 3) {
-    sprintf(text, "Ip de destintion : <-- %d.%d -->\n", dest_ip[0], dest_ip[0]);
+    sprintf(text, "Ip de destintion : <-- %d.%d -->\n", dest_ip[0], dest_ip[1]);
     printString(text);
     termPutchar('\r');
   }

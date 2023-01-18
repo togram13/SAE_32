@@ -1,4 +1,4 @@
-void Fonction_envoie_data_TTL_Dest(uint16_t send_mode, uint16_t freq, uint16_t valTTL, uint16_t *self_ip, uint16_t *dest_ip){
+void Fonction_envoie_data_TTL_Dest(uint16_t send_mode, uint16_t freq, uint16_t *self_ip, uint16_t *dest_ip){
   M5.Lcd.clear(BLACK); //Permet d'effacer l'écran
   rf95.setFrequency(freq);
 
@@ -18,7 +18,7 @@ void Fonction_envoie_data_TTL_Dest(uint16_t send_mode, uint16_t freq, uint16_t v
     txbuf[i] = d;// 2 octets à 128 de payload
     d=d+1;
   }
-  txbuf[8] = valTTL;
+  txbuf[8] = ttl;
 
   // affichage pour debug
   for (i = 0; i<9; i++) {

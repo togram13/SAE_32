@@ -1,4 +1,4 @@
-void Fonction_envoie_data_TTL_BigNet(uint16_t send_mode, uint16_t freq, uint16_t valTTL, uint16_t *self_ip){
+void Fonction_envoie_data_TTL_BigNet(uint16_t send_mode, uint16_t freq, uint16_t *self_ip){
   M5.Lcd.clear(BLACK); //Permet d'effacer l'écran
   rf95.setFrequency(freq);
 

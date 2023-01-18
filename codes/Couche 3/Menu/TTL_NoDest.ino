@@ -1,5 +1,5 @@
 //Emission d'un seul paquet
-void Fonction_envoie_data_TTL_noDest(uint16_t send_mode, uint16_t freq, uint16_t valTTL){
+void Fonction_envoie_data_TTL_noDest(uint16_t send_mode, uint16_t freq){
   M5.Lcd.clear(BLACK); //Permet d'effacer l'écran
 
   printString("Emission du paquet : ");
@@ -16,7 +16,7 @@ void Fonction_envoie_data_TTL_noDest(uint16_t send_mode, uint16_t freq, uint16_t
     txbuf[i] = d;// 2 octets à 128 de payload
     d=d+1;
   }
-  txbuf[5] = valTTL;
+  txbuf[5] = ttl;
 
   // affichage pour debug
   for (i = 0; i<6; i++) {
